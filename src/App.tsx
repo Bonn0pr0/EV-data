@@ -11,6 +11,15 @@ import API from "@/pages/API";
 import User from "@/pages/User";
 import NotFound from "@/pages/NotFound";
 
+// Các trang trong admin
+import AdminLayout from "@/pages/admin/AdminLayout";
+import Dashboard from "@/pages/admin/Dashboard";
+import Users from "@/pages/admin/Users";
+import DataModeration from "@/pages/admin/DataModeration";
+import Payments from "@/pages/admin/Payments";
+import Security from './pages/admin/Security';
+import AdminAnalytics from "@/pages/admin/Analytics"; // tránh trùng tên với trang ngoài
+
 
 function App() {
   return (
@@ -33,8 +42,23 @@ function App() {
                 </ProtectedRoute>
               }
             />
-
-
+            
+            {/* Admin layout và các route con */}
+            <Route
+              path="/admin"
+              element={
+                <ProtectedRoute requiredRole="admin">
+                  <AdminLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Dashboard />} />
+              <Route path="users" element={<Users />} />
+              <Route path="data-moderation" element={<DataModeration />} />
+              <Route path="payments" element={<Payments />} />
+              <Route path="analytics" element={<AdminAnalytics />} />
+              <Route path="security" element={<Security />} />
+            </Route>
 
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
