@@ -20,7 +20,12 @@ import Payments from "@/pages/admin/Payments";
 import Security from './pages/admin/Security';
 import AdminAnalytics from "@/pages/admin/Analytics"; // tránh trùng tên với trang ngoài
 
-
+// Trang dành cho staff
+import DataSources from './pages/staff/DataSources';
+import Pricing from './pages/staff/Pricing';
+import Privacy from './pages/staff/Privacy';
+import Revenue from './pages/staff/Revenue';
+import StaffLayout from './pages/staff/StaffLayout';
 function App() {
   return (
     <Router>
@@ -42,7 +47,24 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
+            {/* Trang Staff (phân quyền staff) */}
+            <Route
+              path="/staff"
+              element={
+                <ProtectedRoute requiredRole="staff">
+                  <StaffLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<DataSources />} />
+              <Route path="data-sources" element={<DataSources />} />
+              <Route path="pricing" element={<Pricing />} />
+              <Route path="privacy" element={<Privacy />} />
+              <Route path="revenue" element={<Revenue />} />
+            </Route>
             
+
             {/* Admin layout và các route con */}
             <Route
               path="/admin"
