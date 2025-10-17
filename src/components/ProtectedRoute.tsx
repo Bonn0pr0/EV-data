@@ -3,28 +3,21 @@ import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: string;
+  requiredRoleId?: number; // 1=admin, 2=staff, etc.
 }
 
-const ProtectedRoute = ({ children, requiredRole }: ProtectedRouteProps) => {
-  const { user, userRole, loading } = useAuth();
+const ProtectedRoute = ({ children, requiredRoleId }: ProtectedRouteProps) => {
+  const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
+  if (loading) return <div className="p-4">Đang tải...</div>;
+
+  if (!user) {
+    return <Navigate to="/" replace />;
   }
 
-  // if (!user) {
-  //   return <Navigate to="/" replace />;
-  // }
-
-  // if (requiredRole && userRole !== requiredRole) {
-  //   return <Navigate to="/" replace />;
-  // }
-
+if (requiredRoleId && user.roleId !== requiredRoleId) {
+  return <Navigate to="/" replace />;
+}
   return <>{children}</>;
 };
 
