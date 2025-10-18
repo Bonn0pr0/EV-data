@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
+
 
 const pendingDatasets = [
   {
@@ -42,6 +44,25 @@ const pendingDatasets = [
 ];
 
 export default function DataModeration() {
+  const [stats, setStats] = useState({
+    pendingCount: 0,
+    approvedCount: 0,
+    rejectedCount: 0,
+  });
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch("/api/DataPackage/Count"); // 👈 thay link API thật của bạn
+        if (!res.ok) throw new Error("Lỗi tải dữ liệu thống kê");
+        const data = await res.json();
+        setStats(data);
+      } catch (error) {
+        console.error("Lỗi khi tải thống kê:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
   return (
     <div className="space-y-8">
       <div>
@@ -58,7 +79,7 @@ export default function DataModeration() {
               <div className="bg-warning/10 p-3 rounded-full w-fit mx-auto mb-3">
                 <AlertTriangle className="h-6 w-6 text-warning" />
               </div>
-              <h3 className="text-2xl font-bold text-foreground">12</h3>
+              <h3 className="text-2xl font-bold text-foreground">{stats.pendingCount}</h3>
               <p className="text-sm text-muted-foreground mt-1">Chờ kiểm duyệt</p>
             </div>
           </CardContent>
@@ -70,7 +91,7 @@ export default function DataModeration() {
               <div className="bg-success/10 p-3 rounded-full w-fit mx-auto mb-3">
                 <CheckCircle className="h-6 w-6 text-success" />
               </div>
-              <h3 className="text-2xl font-bold text-foreground">145</h3>
+              <h3 className="text-2xl font-bold text-foreground">{stats.approvedCount}</h3>
               <p className="text-sm text-muted-foreground mt-1">Đã phê duyệt</p>
             </div>
           </CardContent>
@@ -82,7 +103,7 @@ export default function DataModeration() {
               <div className="bg-destructive/10 p-3 rounded-full w-fit mx-auto mb-3">
                 <XCircle className="h-6 w-6 text-destructive" />
               </div>
-              <h3 className="text-2xl font-bold text-foreground">8</h3>
+              <h3 className="text-2xl font-bold text-foreground">{stats.rejectedCount}</h3>
               <p className="text-sm text-muted-foreground mt-1">Từ chối</p>
             </div>
           </CardContent>
