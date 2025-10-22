@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-import { CheckCircle, XCircle, Eye, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 
 export default function DataModeration() {
   const [stats, setStats] = useState({
@@ -27,22 +27,22 @@ export default function DataModeration() {
   const [statusFilter, setStatusFilter] = useState("all");
 
   // 📊 Lấy thống kê
+  const fetchStats = async () => {
+    try {
+      const res = await fetch("/api/DataPackage/Count");
+      if (!res.ok) throw new Error("Lỗi tải dữ liệu thống kê");
+      const data = await res.json();
+      setStats(data);
+    } catch (error) {
+      console.error("❌ Lỗi khi tải thống kê:", error);
+    }
+  };
+
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await fetch("/api/DataPackage/Count");
-        if (!res.ok) throw new Error("Lỗi tải dữ liệu thống kê");
-        const data = await res.json();
-        setStats(data);
-      } catch (error) {
-        console.error("❌ Lỗi khi tải thống kê:", error);
-      }
-    };
     fetchStats();
   }, []);
 
   // 📂 Lấy danh sách dataset
-useEffect(() => {
   const fetchDatasets = async () => {
     try {
       const res = await fetch("/api/DataPackage/DataForAdmin");
@@ -50,7 +50,6 @@ useEffect(() => {
       const result = await res.json();
       console.log("✅ Dữ liệu từ API:", result);
 
-      // Lấy đúng mảng data
       const data = result.data || [];
       setDatasets(data);
       setFilteredData(data);
@@ -58,14 +57,15 @@ useEffect(() => {
       console.error("❌ Lỗi khi tải danh sách:", error);
     }
   };
-  fetchDatasets();
-}, []);
 
-  // 📌 Xử lý lọc dữ liệu
+  useEffect(() => {
+    fetchDatasets();
+  }, []);
+
+  // 📌 Lọc dữ liệu khi tìm kiếm hoặc lọc trạng thái
   useEffect(() => {
     let data = datasets;
 
-    // Tìm kiếm
     if (searchTerm) {
       data = data.filter(
         (d) =>
@@ -74,13 +74,43 @@ useEffect(() => {
       );
     }
 
-    // Lọc trạng thái
     if (statusFilter !== "all") {
       data = data.filter((d) => d.status === statusFilter);
     }
 
     setFilteredData(data);
   }, [searchTerm, statusFilter, datasets]);
+
+  // 📤 Gọi API đổi trạng thái
+const changeStatus = async (packageId, newStatus) => {
+  try {
+    // ✅ Xác nhận hành động
+    const actionText = newStatus === "Approved" ? "duyệt" : "từ chối";
+    const confirmAction = window.confirm(`Bạn có chắc muốn ${actionText} gói dữ liệu này không?`);
+    if (!confirmAction) return;
+
+    const res = await fetch(`/api/DataPackage/${packageId}/status`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ newStatus }),
+    });
+
+    if (!res.ok) throw new Error("Cập nhật trạng thái thất bại");
+    console.log(`✅ Cập nhật trạng thái ${newStatus} cho gói ${packageId} thành công`);
+
+    // Load lại dữ liệu sau khi cập nhật
+    await fetchDatasets();
+    await fetchStats();
+
+    // ✅ Hiển thị thông báo đơn giản
+    alert(`Gói dữ liệu đã được ${actionText} thành công!`);
+  } catch (error) {
+    console.error("❌ Lỗi khi cập nhật trạng thái:", error);
+    alert("❌ Có lỗi xảy ra, vui lòng thử lại!");
+  }
+};
 
   return (
     <div className="space-y-8">
@@ -131,7 +161,6 @@ useEffect(() => {
           <CardTitle>Dữ liệu chờ kiểm duyệt</CardTitle>
         </CardHeader>
 
-        {/* Thanh tìm kiếm & lọc */}
         <div className="px-6 pb-4 flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="w-full md:w-1/2">
             <Input
@@ -202,14 +231,11 @@ useEffect(() => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <Button variant="outline" size="sm">
-                          <Eye className="h-4 w-4 mr-1" />
-                          Xem
-                        </Button>
                         <Button
                           variant="outline"
                           size="sm"
                           className="text-success border-success hover:bg-success/10"
+                          onClick={() => changeStatus(dataset.packageId, "Approved")}
                         >
                           <CheckCircle className="h-4 w-4 mr-1" />
                           Duyệt
@@ -218,6 +244,7 @@ useEffect(() => {
                           variant="outline"
                           size="sm"
                           className="text-destructive border-destructive hover:bg-destructive/10"
+                          onClick={() => changeStatus(dataset.packageId, "Rejected")}
                         >
                           <XCircle className="h-4 w-4 mr-1" />
                           Từ chối
