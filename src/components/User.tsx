@@ -49,7 +49,7 @@ export default function ProfilePage() {
                       <div className="text-sm">
                         <div className="text-muted-foreground">Vai trò</div>
                         <div className="font-medium">
-                          {user.roleId === 1 ? "Admin" : user.roleId === 2 ? "Staff" : "Người dùng"}
+                          {user.roleId === 1 ? "Admin" : user.roleId === 2 ? "Staff" : user.roleId === 3 ? "Consumer" : "Provider"}
                         </div>
                       </div>
                     </div>
