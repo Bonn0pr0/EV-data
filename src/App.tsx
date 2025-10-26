@@ -8,7 +8,7 @@ import Index from "@/pages/Index";
 import Market from "@/pages/Market";
 import Analytics from "@/pages/Analytics";
 import API from "@/pages/API";
-import User from "@/pages/User";
+import User from "@/components/User";
 import NotFound from "@/pages/NotFound";
 
 // Các trang trong admin

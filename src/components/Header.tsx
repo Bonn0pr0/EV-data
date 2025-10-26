@@ -4,11 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Search, User, Menu, BarChart3 } from "lucide-react";
 import LoginModal from "@/components/LoginModal";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useContext } from "react";
+
 
 const Header = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,18 +66,32 @@ const Header = () => {
                 className="bg-transparent text-sm outline-none flex-1"
               />
             </form>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="hidden sm:flex"
-              onClick={() => setIsLoginModalOpen(true)}
-            >
-              <User className="h-4 w-4 mr-2" />
-              Đăng Nhập
-            </Button>
-            <Button size="sm" className="bg-gradient-primary hover:opacity-90" onClick={handleGetStarted}>
-              Bắt Đầu
-            </Button>
+                        {user ? (
+              <>
+                <Link to="/user" className="text-foreground hover:text-primary transition-colors hidden sm:flex items-center space-x-2">
+                  <User className="h-4 w-4" />
+                  <span>{user.username}</span>
+                </Link>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hidden sm:flex"
+                  onClick={() => signOut()}
+                >
+                  Đăng Xuất
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="hidden sm:flex"
+                onClick={() => setIsLoginModalOpen(true)}
+              >
+                <User className="h-4 w-4 mr-2" />
+                Đăng Nhập
+              </Button>
+            )}
             <Button variant="ghost" size="sm" className="md:hidden">
               <Menu className="h-4 w-4" />
             </Button>

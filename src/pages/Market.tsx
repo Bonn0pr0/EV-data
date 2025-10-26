@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Star, Download, Eye, Calendar, Search } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginModal from "@/components/LoginModal";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+
 
 const allDatasets = [
   {
@@ -48,6 +52,7 @@ const allDatasets = [
     tags: ["AI", "Pin", "Dự đoán"],
     category: "battery"
   },
+  
   {
     id: 4,
     title: "EV Market Analysis 2024",
@@ -67,6 +72,12 @@ const Market = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("popular");
+  const { user } = useAuth();
+
+  // Local UI state for login modal and dataset detail dialog
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedDataset, setSelectedDataset] = useState<Record<string, unknown> | null>(null);
 
   const filteredDatasets = allDatasets.filter(dataset => {
     const matchesSearch = dataset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,7 +183,21 @@ const Market = () => {
                   <div>
                     <span className="text-lg font-bold text-foreground">{dataset.price}</span>
                   </div>
-                  <Button size="sm" className="bg-gradient-primary hover:opacity-90">
+                  <Button
+                    size="sm"
+                    className="bg-gradient-primary hover:opacity-90"
+                    onClick={() => {
+                      if (!user) {
+                        // not logged in -> open login modal
+                        setIsLoginModalOpen(true);
+                        return;
+                      }
+
+                      // logged in -> show details dialog
+                      setSelectedDataset(dataset);
+                      setDetailOpen(true);
+                    }}
+                  >
                     Xem Chi Tiết
                   </Button>
                 </div>
@@ -186,6 +211,72 @@ const Market = () => {
             <p className="text-muted-foreground text-lg">Không tìm thấy dataset nào phù hợp với bộ lọc của bạn.</p>
           </div>
         )}
+      
+        {/* Dataset detail dialog */}
+        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Chi tiết Dataset</DialogTitle>
+              <DialogDescription>Thông tin chi tiết về bộ dữ liệu</DialogDescription>
+            </DialogHeader>
+
+            {selectedDataset ? (
+              <div className="mt-2">
+                <table className="w-full text-sm">
+                  <tbody>
+                    <tr>
+                      <td className="py-2 font-medium">Tiêu đề</td>
+                      <td className="py-2">{String(selectedDataset.title || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Mô tả</td>
+                      <td className="py-2">{String(selectedDataset.description || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Nhà cung cấp</td>
+                      <td className="py-2">{String(selectedDataset.provider || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Đánh giá</td>
+                      <td className="py-2">{String(selectedDataset.rating ?? "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Lượt tải</td>
+                      <td className="py-2">{String(selectedDataset.downloads || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Lượt xem</td>
+                      <td className="py-2">{String(selectedDataset.views || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Giá</td>
+                      <td className="py-2">{String(selectedDataset.price || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Cập nhật</td>
+                      <td className="py-2">{String(selectedDataset.lastUpdated || "-")}</td>
+                    </tr>
+                    <tr>
+                      <td className="py-2 font-medium">Tags</td>
+                      <td className="py-2">{Array.isArray(selectedDataset.tags) ? (selectedDataset.tags as unknown[]).join(", ") : String(selectedDataset.tags || "-")}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div>Không có dữ liệu</div>
+            )}
+
+            <DialogFooter>
+              <div className="w-full flex justify-end">
+                <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
+              </div>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Login modal (open when user is not logged in and clicks detail) */}
+        <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       </main>
       <Footer />
     </div>

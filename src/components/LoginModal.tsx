@@ -66,7 +66,7 @@ const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       } else if (roleId === 2) {
         navigate("/staff");
       } else {
-        navigate("/user");
+        navigate("/");
       }
     } else {
       toast({
