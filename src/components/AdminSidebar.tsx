@@ -25,7 +25,6 @@ const menuItems = [
   { title: "Quản lý người dùng", url: "/admin/users", icon: Users },
   { title: "Kiểm duyệt dữ liệu", url: "/admin/data-moderation", icon: Database },
   { title: "Thanh toán & Doanh thu", url: "/admin/payments", icon: CreditCard },
-  { title: "Bảo mật", url: "/admin/security", icon: Shield },
   { title: "Phân tích & Báo cáo", url: "/admin/analytics", icon: BarChart3 },
 ];
 

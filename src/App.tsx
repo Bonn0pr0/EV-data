@@ -17,7 +17,6 @@ import Dashboard from "@/pages/admin/Dashboard";
 import Users from "@/pages/admin/Users";
 import DataModeration from "@/pages/admin/DataModeration";
 import Payments from "@/pages/admin/Payments";
-import Security from './pages/admin/Security';
 import AdminAnalytics from "@/pages/admin/Analytics"; // tránh trùng tên với trang ngoài
 
 // Trang dành cho staff
@@ -79,7 +78,6 @@ function App() {
               <Route path="data-moderation" element={<DataModeration />} />
               <Route path="payments" element={<Payments />} />
               <Route path="analytics" element={<AdminAnalytics />} />
-              <Route path="security" element={<Security />} />
             </Route>
 
             {/* 404 */}
