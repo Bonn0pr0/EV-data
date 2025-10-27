@@ -1,5 +1,5 @@
  import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { StaffSidebar } from "@/components/StaffSidebar";
+import { AdminSidebar } from "@/components/AdminSidebar";
 import { Outlet, useNavigate, Link } from "react-router-dom";
 import { Bell, User, LogOut, Search, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 
 
-export default function StaffLayout() {
+export default function AdminLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -27,7 +27,7 @@ export default function StaffLayout() {
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full bg-background">
-        <StaffSidebar />
+        <AdminSidebar  />
         <div className="flex-1 flex flex-col">
           <header className="h-16 border-b border-border/50 bg-card sticky top-0 z-10 shadow-sm">
             <div className="container mx-auto px-4 h-full">
