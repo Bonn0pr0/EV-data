@@ -1,108 +1,167 @@
-import { StatCard } from "@/components/Statcard";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Database, DollarSign, TrendingUp, Activity, FileCheck } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatCard } from "@/components/Statcard";
+import {
+  Users,
+  Database,
+  DollarSign,
+  TrendingUp,
+  FileText,
+  Activity,
+} from "lucide-react";
 
 export default function Dashboard() {
+  const [summary, setSummary] = useState(null);
+  const [pending, setPending] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      fetch("/api/Dashboard/dashboard/summary").then((res) => res.json()),
+      fetch("/api/DataPackage/pending").then((res) => res.json()),
+    ])
+      .then(([sum, pend]) => {
+        setSummary(sum);
+        setPending(pend);
+      })
+      .catch((err) => console.error("Lỗi tải dashboard:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading)
+    return (
+      <div className="flex items-center justify-center h-[50vh] text-gray-500">
+        Đang tải dữ liệu...
+      </div>
+    );
+
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-8">
+      {/* Tiêu đề */}
       <div>
-        <h1 className="text-3xl font-bold text-foreground">Tổng quan hệ thống</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-bold">Tổng quan hệ thống</h1>
+        <p className="text-gray-500">
           Thống kê và hoạt động của nền tảng Data Marketplace
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Thẻ thống kê */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Tổng người dùng"
-          value="2,847"
-          change="+12.5% so với tháng trước"
-          changeType="positive"
           icon={Users}
+          title="Tổng người dùng"
+          value={summary?.totalUsers || 0}
         />
         <StatCard
-          title="Bộ dữ liệu"
-          value="1,234"
-          change="+8.2% so với tháng trước"
-          changeType="positive"
           icon={Database}
+          title="Bộ dữ liệu"
+          value={summary?.totalDataPackages || 0}
         />
         <StatCard
-          title="Doanh thu tháng này"
-          value="$45,231"
-          change="+23.1% so với tháng trước"
-          changeType="positive"
           icon={DollarSign}
+          title="Doanh thu tháng này"
+          value={`${summary?.monthlyRevenue?.toLocaleString() || 0} VND`}
         />
         <StatCard
-          title="Giao dịch"
-          value="892"
-          change="+5.4% so với tháng trước"
-          changeType="positive"
           icon={TrendingUp}
+          title="Giao dịch"
+          value={summary?.totalTransactions || 0}
         />
       </div>
 
+      {/* Hoạt động & Dữ liệu chờ duyệt */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="shadow-card border-border/50">
+        {/* Hoạt động gần đây */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Activity className="h-5 w-5 text-primary" />
+              <Activity className="w-5 h-5 text-blue-600" />
               Hoạt động gần đây
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {[
-                { user: "Nguyễn Văn A", action: "đã tải lên bộ dữ liệu mới", time: "5 phút trước" },
-                { user: "Trần Thị B", action: "đã mua bộ dữ liệu EV Battery Data", time: "15 phút trước" },
-                { user: "Lê Văn C", action: "đã yêu cầu kiểm duyệt dữ liệu", time: "1 giờ trước" },
-                { user: "Phạm Thị D", action: "đã cập nhật thông tin tài khoản", time: "2 giờ trước" },
-              ].map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 pb-3 border-b border-border/50 last:border-0">
-                  <div className="h-2 w-2 bg-primary rounded-full mt-2" />
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground">
-                      <span className="font-medium">{activity.user}</span> {activity.action}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">{activity.time}</p>
-                  </div>
+            <ul className="space-y-4">
+              <li className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                <div>
+                  <span className="font-medium text-gray-800">
+                    Nguyễn Văn A
+                  </span>{" "}
+                  đã tải lên bộ dữ liệu mới
+                  <div className="text-sm text-gray-500">5 phút trước</div>
                 </div>
-              ))}
-            </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                <div>
+                  <span className="font-medium text-gray-800">
+                    Trần Thị B
+                  </span>{" "}
+                  đã mua bộ dữ liệu EV Battery Data
+                  <div className="text-sm text-gray-500">15 phút trước</div>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                <div>
+                  <span className="font-medium text-gray-800">Lê Văn C</span> đã
+                  yêu cầu kiểm duyệt dữ liệu
+                  <div className="text-sm text-gray-500">1 giờ trước</div>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
+                <div>
+                  <span className="font-medium text-gray-800">Phạm Thị D</span>{" "}
+                  đã cập nhật thông tin tài khoản
+                  <div className="text-sm text-gray-500">2 giờ trước</div>
+                </div>
+              </li>
+            </ul>
           </CardContent>
         </Card>
 
-        <Card className="shadow-card border-border/50">
+        {/* Dữ liệu chờ kiểm duyệt */}
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileCheck className="h-5 w-5 text-primary" />
+              <FileText className="w-5 h-5 text-blue-600" />
               Dữ liệu chờ kiểm duyệt
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                { name: "EV Charging Station Data", provider: "ABC Corp", date: "2024-03-15" },
-                { name: "Battery Performance Metrics", provider: "XYZ Ltd", date: "2024-03-14" },
-                { name: "Vehicle Telemetry Dataset", provider: "Tech Solutions", date: "2024-03-13" },
-              ].map((item, index) => (
-                <div key={index} className="p-4 bg-muted/50 rounded-lg hover:bg-muted transition-smooth">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-medium text-foreground">{item.name}</h4>
-                      <p className="text-sm text-muted-foreground mt-1">Nhà cung cấp: {item.provider}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{item.date}</p>
-                    </div>
-                    <Button size="sm" variant="outline">Kiểm duyệt</Button>
+          <CardContent className="space-y-4">
+            {pending.length > 0 ? (
+              pending.map((pkg, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <div>
+                    <h3 className="font-semibold text-gray-800">
+                      {pkg.packageName}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      Nhà cung cấp: {pkg.providerName}
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      {new Date(pkg.createAt).toLocaleDateString("vi-VN")}
+                    </p>
                   </div>
+
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              <p className="text-gray-500 text-center py-4">
+                Không có dữ liệu chờ kiểm duyệt
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+
+
