@@ -46,19 +46,19 @@ export default function Payments() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Tổng doanh thu"
-          value={`${dashboard?.totalRevenue?.toLocaleString?.() || 0} đ`}
+          value={`${dashboard?.totalRevenue?.toLocaleString?.() || 0} VND`}
           changeType="positive"
           icon={DollarSign}
         />
         <StatCard
           title="Hoa hồng nền tảng"
-          value={`${dashboard?.platforCommission?.toLocaleString?.() || 0} đ`}
+          value={`${dashboard?.platforCommission?.toLocaleString?.() || 0} VND`}
           changeType="neutral"
           icon={Percent}
         />
         <StatCard
           title="Chia sẻ cho Provider"
-          value={`${dashboard?.providerShare?.toLocaleString?.() || 0} đ`}
+          value={`${dashboard?.providerShare?.toLocaleString?.() || 0} VND`}
           changeType="positive"
           icon={TrendingUp}
         />
@@ -97,8 +97,8 @@ export default function Payments() {
                     <TableCell>#{t.transactionId}</TableCell>
                     <TableCell>{t.providerName}</TableCell>
                     <TableCell>{t.packageName}</TableCell>
-                    <TableCell>{t.amount?.toLocaleString?.() || 0} đ</TableCell>
-                    <TableCell>{t.commission?.toLocaleString?.() || 0} đ</TableCell>
+                    <TableCell>{t.amount?.toLocaleString?.() || 0} VND</TableCell>
+                    <TableCell>{t.commission?.toLocaleString?.() || 0} VND</TableCell>
                     <TableCell>{t.transactionDate?.split("T")[0]}</TableCell>
                     <TableCell>
                       <Badge variant={t.status === "completed" ? "default" : "secondary"}>
@@ -154,13 +154,13 @@ export default function Payments() {
           />
           <StatCard
             title="Tổng doanh thu"
-            value={`${report?.totalAmount?.toLocaleString?.() || 0} đ`}
+            value={`${report?.totalAmount?.toLocaleString?.() || 0} VND`}
             changeType="positive"
             icon={DollarSign}
           />
           <StatCard
             title="Giá trị trung bình"
-            value={`${report?.averageTransaction?.toLocaleString?.() || 0} đ`}
+            value={`${report?.averageTransaction?.toLocaleString?.() || 0} VND`}
             changeType="neutral"
             icon={DollarSign}
           />
