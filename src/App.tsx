@@ -25,6 +25,13 @@ import Pricing from './pages/staff/Pricing';
 import Privacy from './pages/staff/Privacy';
 import Revenue from './pages/staff/Revenue';
 import StaffLayout from './pages/staff/StaffLayout';
+
+//Trang dành cho consumer
+import ConsumerLayout from "./pages/consumer/ConsumerLayout";
+import Cart from "./pages/consumer/Cart";
+import Checkout from "./pages/consumer/Checkout";
+import MyPurchases from "./pages/consumer/MyPurchases";
+
 function App() {
   return (
     <Router>
@@ -79,7 +86,13 @@ function App() {
               <Route path="payments" element={<Payments />} />
               <Route path="analytics" element={<AdminAnalytics />} />
             </Route>
-
+            
+            <Route path="/consumer" element={<ConsumerLayout />}>
+              <Route index element={<MyPurchases />} />
+              <Route path="cart" element={<Cart />} />
+              <Route path="checkout" element={<Checkout />} />
+              <Route path="purchases" element={<MyPurchases />} />
+            </Route>
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
