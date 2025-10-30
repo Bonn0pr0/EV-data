@@ -6,12 +6,9 @@ export function ConsumerSidebar() {
   const location = useLocation();
 
   const links = [
-    { to: "/consumer/marketplace", icon: Package, label: "Marketplace" },
+    // { to: "/consumer/marketplace", icon: Package, label: "Marketplace" },
     { to: "/consumer/cart", icon: ShoppingCart, label: "Giỏ Hàng" },
     { to: "/consumer/purchases", icon: CreditCard, label: "Đơn Mua" },
-    { to: "/consumer/analytics", icon: TrendingUp, label: "Analytics" },
-    { to: "/consumer/api", icon: Key, label: "API Access" },
-    { to: "/consumer/report", icon: AlertTriangle, label: "Báo Cáo" },
   ];
 
   return (

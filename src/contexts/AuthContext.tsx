@@ -2,10 +2,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 interface UserInfo {
+  userId?: number;
   username: string;
   email: string;
   token: string;
   roleId?: number;
+  
 }
 
 interface AuthContextType {
@@ -28,9 +30,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const email = sessionStorage.getItem("email");
     const roleIdStr = sessionStorage.getItem("roleId");
     const roleId = roleIdStr ? parseInt(roleIdStr) : undefined;
-
+    const userIdStr = sessionStorage.getItem("userId");
+    const userId = userIdStr ? parseInt(userIdStr) : undefined;
     if (token && storedUsername && email) {
-      setUser({ token, username: storedUsername, email, roleId });
+      setUser({ token, username: storedUsername, email, roleId, userId  });
     }
     setLoading(false);
   }, []);
@@ -51,11 +54,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       // ✅ Đổi tên khi destructuring để tránh trùng với biến đầu vào
-      const { token, username: returnedUsername, email: returnedEmail, roleId } =
+      const { token, username: returnedUsername, email: returnedEmail,userId, roleId } =
         result.data;
 
       // ✅ Lưu session
       sessionStorage.setItem("token", token);
+      sessionStorage.setItem("userId", userId?.toString() || "");
       sessionStorage.setItem("username", returnedUsername);
       sessionStorage.setItem("email", returnedEmail);
       sessionStorage.setItem("roleId", roleId?.toString() || "");

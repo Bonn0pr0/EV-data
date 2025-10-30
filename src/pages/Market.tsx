@@ -10,8 +10,10 @@ import { Star, Download, Eye, Calendar, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import LoginModal from "@/components/LoginModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
-
-
+import { toast } from "sonner";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {Filter, Battery, Car, Zap, TrendingUp,DollarSign,FileText, Database, BarChart3, ShoppingCart, AlertCircle } from "lucide-react";
 
 const Market = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -136,7 +138,7 @@ const Market = () => {
                 
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div>
-                    <span className="text-lg font-bold text-foreground">{dataset.pricingPlan}</span>
+                    <span className="text-lg font-bold text-foreground">{dataset.pricingPlan} VND</span>
                   </div>
                   <Button
                     size="sm"
@@ -167,64 +169,210 @@ const Market = () => {
           </div>
         )}
       
-        {/* Dataset detail dialog */}
-        <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Chi tiết Dataset</DialogTitle>
-              <DialogDescription>Thông tin chi tiết về bộ dữ liệu</DialogDescription>
-            </DialogHeader>
 
-            {selectedDataset ? (
-              <div className="mt-2">
-                <table className="w-full text-sm">
-                  <tbody>
-                    <tr>
-                      <td className="py-2 font-medium">Tiêu đề</td>
-                      <td className="py-2">{String(selectedDataset.packageName || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Nhà cung cấp</td>
-                      <td className="py-2">{String(selectedDataset.providerName || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Đánh giá</td>
-                      <td className="py-2">{String(selectedDataset.rating ?? "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Lượt tải</td>
-                      <td className="py-2">{String(selectedDataset.downloadCount || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Lượt xem</td>
-                      <td className="py-2">{String(selectedDataset.views || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Giá</td>
-                      <td className="py-2">{String(selectedDataset.pricingPlan || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Cập nhật</td>
-                      <td className="py-2">{String(selectedDataset.createAt || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Tags</td>
-                      <td className="py-2">{String(selectedDataset.type|| "-")}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div>Không có dữ liệu</div>
-            )}
+      {/* Dataset Detail Dialog */}
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl">Chi tiết Dataset</DialogTitle>
+          </DialogHeader>
 
-            <DialogFooter>
-              <div className="w-full flex justify-end">
-                <Button variant="outline" onClick={() => setDetailOpen(false)}>Đóng</Button>
+          {selectedDataset ? (
+            <div className="space-y-6">
+              {/* THÔNG TIN CƠ BẢN */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    THÔNG TIN CƠ BẢN
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Tên gói dữ liệu</p>
+                      <p className="font-medium">{selectedDataset.packageName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nhà cung cấp</p>
+                      <p className="font-medium">{selectedDataset.providerName}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Đánh giá</p>
+                      <div className="flex items-center gap-1">
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.floor(selectedDataset.rating)
+                                ? "fill-yellow-500 text-yellow-500"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-2 font-medium">{selectedDataset.rating}</span>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Giá</p>
+                      <p className="font-bold text-lg text-success">{selectedDataset.pricingPlan} VND</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Loại</p>
+                      <Badge variant="secondary">{selectedDataset.type}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* MÔ TẢ */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    MÔ TẢ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {selectedDataset.description}
+                  </p>
+                </CardContent>
+              </Card>
+
+              {/* THÔNG TIN KỸ THUẬT */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Database className="h-5 w-5" />
+                    THÔNG TIN KỸ THUẬT
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Định dạng</p>
+                      <p className="font-medium">{selectedDataset.fileFormat}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Kích thước</p>
+                      <p className="font-medium">{selectedDataset.fileSize}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Phiên bản</p>
+                      <p className="font-medium">{selectedDataset.version}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* THỜI GIAN */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Calendar className="h-5 w-5" />
+                    THỜI GIAN
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Ngày tạo</p>
+                      <p className="font-medium">{selectedDataset.createAt}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Ngày cập nhật</p>
+                      <p className="font-medium">{selectedDataset.updateAt}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* THỐNG KÊ */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <BarChart3 className="h-5 w-5" />
+                    THỐNG KÊ
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Lượt tải</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        {selectedDataset.downloadCount}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Đã thêm giỏ hàng</p>
+                      <p className="font-medium flex items-center gap-2">
+                        <Download className="h-4 w-4" />
+                        {selectedDataset.cartCount}
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 pt-4">
+                <Button className="bg-gradient-primary flex-1 min-w-[150px]">
+                  <Download className="h-4 w-4 mr-2" />
+                  Mua ngay
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 min-w-[150px]"
+                  onClick={async () => {
+                    if (!user) {
+                      setIsLoginModalOpen(true);
+                      return;
+                    }
+
+                    try {
+                      const response = await fetch("/api/Cart", {
+                        method: "POST",
+                        headers: {
+                          "Content-Type": "application/json",
+                          Accept: "*/*",
+                        },
+                        body: JSON.stringify({
+                          userId: user.userId, 
+                          planId: selectedDataset.princingPlanId, 
+                          quantity: 1, 
+                        }),
+                      });
+
+                      if (!response.ok) throw new Error("Lỗi khi thêm vào giỏ hàng");
+
+                      const result = await response.json();
+                      toast.success(result.message || "Đã thêm vào giỏ hàng!");
+                    } catch (err) {
+                      console.error(err);
+                      toast.error("Không thể thêm vào giỏ hàng. Vui lòng thử lại!");
+                    }
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Thêm vào giỏ
+                </Button>
+
+                <Button variant="outline" className="flex-1 min-w-[150px]">
+                  <AlertCircle className="h-4 w-4 mr-2" />
+                  Báo cáo
+                </Button>
               </div>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              Không có dữ liệu
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
         {/* Login modal (open when user is not logged in and clicks detail) */}
         <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
