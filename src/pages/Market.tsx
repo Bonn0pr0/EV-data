@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect  } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,61 +12,6 @@ import LoginModal from "@/components/LoginModal";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 
 
-const allDatasets = [
-  {
-    id: 1,
-    title: "Tesla Model 3 Performance Dataset",
-    description: "Dữ liệu hiệu suất chi tiết từ 10,000+ xe Tesla Model 3 trong 2 năm vận hành",
-    provider: "Tesla Research Lab",
-    rating: 4.9,
-    downloads: "12.5K",
-    views: "45.2K",
-    price: "Miễn phí",
-    lastUpdated: "2 ngày trước",
-    tags: ["Hiệu suất", "Pin", "Tesla"],
-    category: "performance"
-  },
-  {
-    id: 2,
-    title: "Global EV Charging Network Data",
-    description: "Thông tin về 50,000+ trạm sạc xe điện trên toàn thế giới với dữ liệu thời gian thực",
-    provider: "ChargePoint Analytics",
-    rating: 4.7,
-    downloads: "8.3K",
-    views: "32.1K",
-    price: "$299/tháng",
-    lastUpdated: "1 tuần trước",
-    tags: ["Trạm sạc", "Toàn cầu", "Real-time"],
-    category: "charging"
-  },
-  {
-    id: 3,
-    title: "EV Battery Health Prediction",
-    description: "Mô hình AI dự đoán tuổi thọ pin với độ chính xác 95% dựa trên 100K+ mẫu dữ liệu",
-    provider: "BatteryTech AI",
-    rating: 4.8,
-    downloads: "6.7K",
-    views: "28.9K",
-    price: "$199/dataset",
-    lastUpdated: "3 ngày trước",
-    tags: ["AI", "Pin", "Dự đoán"],
-    category: "battery"
-  },
-  
-  {
-    id: 4,
-    title: "EV Market Analysis 2024",
-    description: "Phân tích thị trường xe điện toàn cầu với dự báo đến 2030",
-    provider: "Market Insights Pro",
-    rating: 4.6,
-    downloads: "5.2K",
-    views: "18.7K",
-    price: "$149/báo cáo",
-    lastUpdated: "1 tuần trước",
-    tags: ["Thị trường", "Phân tích", "Dự báo"],
-    category: "market"
-  }
-];
 
 const Market = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,15 +19,31 @@ const Market = () => {
   const [sortBy, setSortBy] = useState("popular");
   const { user } = useAuth();
 
-  // Local UI state for login modal and dataset detail dialog
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [selectedDataset, setSelectedDataset] = useState<Record<string, unknown> | null>(null);
+  const [selectedDataset, setSelectedDataset] = useState(null);
 
-  const filteredDatasets = allDatasets.filter(dataset => {
-    const matchesSearch = dataset.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         dataset.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "all" || dataset.category === selectedCategory;
+
+  const [datasets, setDatasets] = useState([]);
+
+  // ✅ Fetch API khi load trang
+  useEffect(() => {
+    fetch("/api/DataPackage/AllPackage", {
+      method: "GET",
+      headers: { Accept: "*/*" },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log("API Response:", data);
+        setDatasets(data);
+      })
+      .catch((err) => console.error("Lỗi khi gọi API:", err));
+  }, []);
+  const filteredDatasets = datasets.filter((item) => {
+    const matchesSearch =
+      item.packageName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.providerName?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || item.type === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -116,10 +77,9 @@ const Market = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Tất cả danh mục</SelectItem>
-              <SelectItem value="performance">Hiệu suất</SelectItem>
-              <SelectItem value="charging">Trạm sạc</SelectItem>
-              <SelectItem value="battery">Pin</SelectItem>
-              <SelectItem value="market">Thị trường</SelectItem>
+              <SelectItem value="Regions">Khu vực</SelectItem>
+              <SelectItem value="Vehicles">Phương tiện</SelectItem>
+              <SelectItem value="Batterys">Pin</SelectItem>
             </SelectContent>
           </Select>
           <Select value={sortBy} onValueChange={setSortBy}>
@@ -141,23 +101,22 @@ const Market = () => {
             <Card key={dataset.id} className="group hover:shadow-electric transition-all duration-300 hover:-translate-y-1">
               <CardHeader>
                 <CardTitle className="text-xl group-hover:text-primary transition-colors">
-                  {dataset.title}
+                  {dataset.packageName}
                 </CardTitle>
-                <CardDescription className="text-base">
-                  {dataset.description}
-                </CardDescription>
                 <div className="text-sm font-medium text-primary">
-                  by {dataset.provider}
+                  by {dataset.providerName}
                 </div>
               </CardHeader>
               
               <CardContent className="space-y-4">
                 <div className="flex flex-wrap gap-2">
-                  {dataset.tags.map((tag, index) => (
-                    <Badge key={index} variant="secondary" className="text-xs">
-                      {tag}
-                    </Badge>
-                  ))}
+                    {dataset.type && (
+                      <div className="flex flex-wrap gap-2">
+                        <Badge variant="secondary" className="text-xs">
+                          {dataset.type}
+                        </Badge>
+                      </div>
+                    )}
                 </div>
                 
                 <div className="grid grid-cols-2 gap-4 text-sm">
@@ -167,21 +126,17 @@ const Market = () => {
                   </div>
                   <div className="flex items-center">
                     <Download className="h-4 w-4 text-muted-foreground mr-1" />
-                    <span>{dataset.downloads}</span>
-                  </div>
-                  <div className="flex items-center">
-                    <Eye className="h-4 w-4 text-muted-foreground mr-1" />
-                    <span>{dataset.views}</span>
+                    <span>{dataset.downloadCount}</span>
                   </div>
                   <div className="flex items-center">
                     <Calendar className="h-4 w-4 text-muted-foreground mr-1" />
-                    <span>{dataset.lastUpdated}</span>
+                    <span>{dataset.createAt}</span>
                   </div>
                 </div>
                 
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div>
-                    <span className="text-lg font-bold text-foreground">{dataset.price}</span>
+                    <span className="text-lg font-bold text-foreground">{dataset.pricingPlan}</span>
                   </div>
                   <Button
                     size="sm"
@@ -226,15 +181,11 @@ const Market = () => {
                   <tbody>
                     <tr>
                       <td className="py-2 font-medium">Tiêu đề</td>
-                      <td className="py-2">{String(selectedDataset.title || "-")}</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium">Mô tả</td>
-                      <td className="py-2">{String(selectedDataset.description || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.packageName || "-")}</td>
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Nhà cung cấp</td>
-                      <td className="py-2">{String(selectedDataset.provider || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.providerName || "-")}</td>
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Đánh giá</td>
@@ -242,7 +193,7 @@ const Market = () => {
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Lượt tải</td>
-                      <td className="py-2">{String(selectedDataset.downloads || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.downloadCount || "-")}</td>
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Lượt xem</td>
@@ -250,15 +201,15 @@ const Market = () => {
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Giá</td>
-                      <td className="py-2">{String(selectedDataset.price || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.pricingPlan || "-")}</td>
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Cập nhật</td>
-                      <td className="py-2">{String(selectedDataset.lastUpdated || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.createAt || "-")}</td>
                     </tr>
                     <tr>
                       <td className="py-2 font-medium">Tags</td>
-                      <td className="py-2">{Array.isArray(selectedDataset.tags) ? (selectedDataset.tags as unknown[]).join(", ") : String(selectedDataset.tags || "-")}</td>
+                      <td className="py-2">{String(selectedDataset.type|| "-")}</td>
                     </tr>
                   </tbody>
                 </table>
