@@ -85,14 +85,14 @@ export default function Analytics() {
                     {index + 1}
                   </div>
                   <div>
-                    <h4 className="font-medium text-foreground">{item.packageName}</h4>
+                    <h4 className="font-medium text-foreground">{item.dataPackageName}</h4>
                     <p className="text-sm text-muted-foreground mt-1">
                       {item.totalDownloads?.toLocaleString?.()} downloads • {item.providerName}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Badge variant="outline">{item.categoryName}</Badge>
+                  <Badge variant="outline">{item.type}</Badge>
                   <Badge className="bg-success">{item.trend || "+0%"}</Badge>
                 </div>
               </div>
