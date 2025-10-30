@@ -1,3 +1,4 @@
+"use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Upload, FileText, Edit, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/Statcard";
 import { Database, Activity, CheckCircle, Clock } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,DialogFooter } from "@/components/ui/dialog";
 
 export default function DataSources() {
   const mockDatasets = [
@@ -17,6 +20,65 @@ export default function DataSources() {
     { id: 3, name: "Dữ liệu sạc nhanh", type: "Sạc", size: "980 MB", status: "active", uploads: 890, revenue: "32,000,000₫" },
     { id: 4, name: "Giao dịch điện năng", type: "Giao dịch", size: "450 MB", status: "active", uploads: 560, revenue: "18,500,000₫" },
   ];
+
+  const [datasets, setDatasets] = useState([]);
+// status 
+  const pendingCount = datasets.filter(item => item.status === "Pending").length;
+  const approvedCount = datasets.filter(item => item.status === "Approved").length; 
+  const activeCount = datasets.filter(item => item.status === "Active").length;
+
+ // detail button 
+  const [selectedPackage, setSelectedPackage] = useState(null);
+  const [openDetail, setOpenDetail] = useState(false);
+
+//delete button 
+  const [openDelete, setOpenDelete] = useState(false);
+const [deleteId, setDeleteId] = useState<number | null>(null);
+
+const handleConfirmDelete = (id: number) => {
+  setDeleteId(id);
+  setOpenDelete(true);
+};
+
+
+
+
+useEffect(() => {
+  const fetchData = async () => {
+    const res = await fetch(`/api/DataPackage`);
+    const data = await res.json();
+    setDatasets(data);
+  }; 
+  fetchData();
+}, []);
+
+const handleViewDetail = async (id: number) => {
+  try {
+   const res = await fetch(`/api/DataPackage/${id}`);
+    if (!res.ok) throw new Error("Lấy chi tiết thất bại");
+    const data = await res.json();
+    setSelectedPackage(data);
+    setOpenDetail(true);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleDelete = async (id: number) => {
+  if (!deleteId) return;
+  try {
+    const res = await fetch(`/api/DataPackage/${id}`, {
+      method: "DELETE",
+    });
+
+    if (!res.ok) throw new Error("Xoá thất bại");
+
+    setDatasets((prev) => prev.filter((item) => item.packageId !== deleteId));
+    setOpenDelete(false);
+  } catch (error) {
+    console.error(error);
+  }
+};
 
   return (
     <div className="space-y-6">
@@ -34,13 +96,14 @@ export default function DataSources() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-4">
-        <StatCard
-          title="Tổng dữ liệu"
-          value="4"
-          icon={Database}
-          change="2 bộ dữ liệu mới"
-          changeType="positive"
-        />
+      <StatCard
+  title="Tổng dữ liệu"
+  value={`${datasets.length}`}
+  icon={Database}
+  change={`${datasets.length} bộ dữ liệu`}
+  changeType="positive"
+/>
+
         <StatCard
           title="Đang hoạt động"
           value="3"
@@ -53,11 +116,11 @@ export default function DataSources() {
           value="3"
           icon={CheckCircle}
         />
-        <StatCard
-          title="Chờ duyệt"
-          value="1"
-          icon={Clock}
-        />
+          <StatCard
+        title="Chờ duyệt"
+        value={`${pendingCount}`}
+        icon={Clock}
+      />
       </div>
 
       <Card>
@@ -141,29 +204,48 @@ export default function DataSources() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockDatasets.map((dataset) => (
-                <TableRow key={dataset.id}>
-                  <TableCell className="font-medium">{dataset.name}</TableCell>
-                  <TableCell>{dataset.type}</TableCell>
-                  <TableCell>{dataset.size}</TableCell>
-                  <TableCell>
-                    <Badge variant={dataset.status === "active" ? "default" : "secondary"}>
-                      {dataset.status === "active" ? "Hoạt động" : "Chờ duyệt"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{dataset.uploads}</TableCell>
-                  <TableCell className="font-semibold text-success">{dataset.revenue}</TableCell>
+              {datasets.map((dataset) => (
+                <TableRow key={dataset.packageId}>
+                   <TableCell className="font-medium">{dataset.packageName}</TableCell>
+  <TableCell>{dataset.description}</TableCell>
+  <TableCell>{dataset.version}</TableCell>
+  <TableCell>
+    {/* Đổi hiển thị trạng thái ở đây */}
+    <Badge
+      variant={
+        dataset.status === "Active"
+          ? "default"
+          : dataset.status === "Approved"
+          ? "default"
+          : "secondary"
+      }
+    >
+      {dataset.status === "Active"
+        ? "Hoạt động"
+        : dataset.status === "Approved"
+        ? "Đã phê duyệt"
+        : "Chờ duyệt"}
+    </Badge>
+  </TableCell>
+  <TableCell>{dataset.uploads}</TableCell>
+  <TableCell className="font-semibold text-success">{dataset.revenue}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon">
-                        <FileText className="h-4 w-4" />
-                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => handleViewDetail(dataset.packageId)}>
+  <FileText className="h-4 w-4" />
+</Button>
+
                       <Button variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <Button
+  variant="ghost"
+  size="icon"
+ onClick={() => handleConfirmDelete(dataset.packageId)}
+>
+  <Trash2 className="h-4 w-4 text-red-500" />
+</Button>
+
                     </div>
                   </TableCell>
                 </TableRow>
@@ -172,6 +254,106 @@ export default function DataSources() {
           </Table>
         </CardContent>
       </Card>
+<Dialog open={openDetail} onOpenChange={setOpenDetail}>
+  <DialogContent className="max-w-xl">
+    <DialogHeader className="pb-4">
+      <DialogTitle className="text-lg font-semibold">
+        {selectedPackage?.packageName}
+      </DialogTitle>
+      <DialogDescription>
+        Thông tin chi tiết gói dữ liệu
+      </DialogDescription>
+    </DialogHeader>
+
+    {selectedPackage && (
+      <div className="grid grid-cols-2 gap-4 text-sm">
+
+        <div className="col-span-2">
+          <p className="text-gray-500 font-medium mb-1">Mô tả : {selectedPackage.description}</p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Version : {selectedPackage.version}</p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Ngày phát hành :
+         
+            {new Date(selectedPackage.releaseDate).toLocaleDateString("vi-VN")}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Cập nhật lần cuối : {new Date(selectedPackage.lastUpdate).toLocaleDateString("vi-VN")}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Trạng thái : 
+          <span
+            className={`px-2 py-1 rounded text-xs font-medium border
+              ${selectedPackage.status === "Approved" ? "bg-green-100 text-green-700 border-green-300" : ""}
+              ${selectedPackage.status === "Pending" ? "bg-yellow-100 text-yellow-700 border-yellow-300" : ""}
+              ${selectedPackage.status === "Active" ? "bg-blue-100 text-blue-700 border-blue-300" : ""}
+            `}
+          >
+            {selectedPackage.status === "Active"
+              ? "Hoạt động"
+              : selectedPackage.status === "Approved"
+              ? "Đã phê duyệt"
+              : "Chờ duyệt"}
+          </span> </p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">User ID : {selectedPackage.userId}</p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Subcategory : {selectedPackage.subcategoryId}</p>
+        </div>
+
+        <div>
+          <p className="text-gray-500 font-medium mb-1">Metadata : {selectedPackage.metadataId}</p>
+        
+        </div>
+
+      </div>
+    )}
+
+    <div className="flex justify-end pt-4">
+      <button
+        onClick={() => setOpenDetail(false)}
+        className="px-4 py-2 text-sm rounded-md border hover:bg-gray-50 transition"
+      >
+        Đóng
+      </button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+<Dialog open={openDelete} onOpenChange={setOpenDelete}>
+  <DialogContent className="max-w-sm">
+    <DialogHeader>
+      <DialogTitle className="text-red-600">Xác nhận xoá</DialogTitle>
+      <DialogDescription>
+        Bạn có chắc muốn xoá gói dữ liệu này? Hành động này không thể hoàn tác.
+      </DialogDescription>
+    </DialogHeader>
+
+    <div className="flex justify-end gap-3 pt-4">
+       <Button variant="outline" onClick={() => setOpenDelete(false)}>
+        Huỷ
+      </Button>
+      <Button variant="destructive" onClick={() => handleDelete(deleteId)}>
+        Xoá
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
+
+
+
     </div>
   );
 }
