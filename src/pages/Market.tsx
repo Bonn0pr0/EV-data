@@ -84,7 +84,7 @@ const Market = () => {
               <SelectItem value="Batterys">Pin</SelectItem>
             </SelectContent>
           </Select>
-          <Select value={sortBy} onValueChange={setSortBy}>
+          {/* <Select value={sortBy} onValueChange={setSortBy}>
             <SelectTrigger className="w-full md:w-48">
               <SelectValue placeholder="Sắp xếp theo" />
             </SelectTrigger>
@@ -94,7 +94,7 @@ const Market = () => {
               <SelectItem value="rating">Đánh giá cao</SelectItem>
               <SelectItem value="price">Giá</SelectItem>
             </SelectContent>
-          </Select>
+          </Select> */}
         </div>
 
         {/* Results */}
@@ -174,7 +174,7 @@ const Market = () => {
       <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl">Chi tiết Dataset</DialogTitle>
+            <DialogTitle className="text-2xl">CHI TIẾT GÓI DỮ LIỆU</DialogTitle>
           </DialogHeader>
 
           {selectedDataset ? (

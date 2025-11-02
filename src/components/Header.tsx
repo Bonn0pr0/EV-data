@@ -68,7 +68,7 @@ const Header = () => {
             </form>
                         {user ? (
               <>
-                <Link to="/user" className="text-foreground hover:text-primary transition-colors hidden sm:flex items-center space-x-2">
+                <Link to="/consumer" className="text-foreground hover:text-primary transition-colors hidden sm:flex items-center space-x-2">
                   <User className="h-4 w-4" />
                   <span>{user.username}</span>
                 </Link>
