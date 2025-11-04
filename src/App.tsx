@@ -32,6 +32,7 @@ import Checkout from "./pages/consumer/Checkout";
 import MyPurchases from "./pages/consumer/MyPurchases";
 import PaymentMomo from "./pages/consumer/PaymentMomo";
 import PaymentVNPay from "./pages/consumer/PaymentVNPay";
+import Invoice  from './pages/consumer/Invoice';  
 
 function App() {
   return (
@@ -94,6 +95,7 @@ function App() {
               <Route path="purchases" element={<MyPurchases />} />
               <Route path="payment-momo" element={<PaymentMomo />} />
               <Route path="payment-vnpay" element={<PaymentVNPay />} />
+              <Route path="invoice" element={<Invoice />} />
             </Route>
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
