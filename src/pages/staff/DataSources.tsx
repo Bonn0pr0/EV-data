@@ -20,12 +20,13 @@ export default function DataSources() {
     { id: 3, name: "Dữ liệu sạc nhanh", type: "Sạc", size: "980 MB", status: "active", uploads: 890, revenue: "32,000,000₫" },
     { id: 4, name: "Giao dịch điện năng", type: "Giao dịch", size: "450 MB", status: "active", uploads: 560, revenue: "18,500,000₫" },
   ];
-
-  const [datasets, setDatasets] = useState([]);
-// status 
-  const pendingCount = datasets.filter(item => item.status === "Pending").length;
-  const approvedCount = datasets.filter(item => item.status === "Approved").length; 
-  const activeCount = datasets.filter(item => item.status === "Active").length;
+const [datasets, setDatasets] = useState([]);
+const [dashboardData, setDashboardData] = useState({
+  totalData: 0,
+  activeData: 0,
+  approvedData: 0,
+  pendingData: 0,
+});
 
  // detail button 
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -40,7 +41,33 @@ const handleConfirmDelete = (id: number) => {
   setOpenDelete(true);
 };
 
+useEffect(() => {
+  const userId = 6; // sau này thay bằng user từ AuthContext
+  const fetchDashboard = async () => {
+    try {
+      const res = await fetch(`/api/DataPackage/dashboard/${userId}`);
+      if (!res.ok) throw new Error("Không thể lấy dữ liệu dashboard");
+      const data = await res.json();
+      setDashboardData(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
+  const fetchUserData = async () => {
+    try {
+      const res = await fetch(`/api/DataPackage/user/${userId}`);
+      if (!res.ok) throw new Error("Không thể lấy danh sách dataset");
+      const data = await res.json();
+      setDatasets(data);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  fetchDashboard();
+  fetchUserData();
+}, []);
 
 
 useEffect(() => {
@@ -52,17 +79,7 @@ useEffect(() => {
   fetchData();
 }, []);
 
-const handleViewDetail = async (id: number) => {
-  try {
-   const res = await fetch(`/api/DataPackage/${id}`);
-    if (!res.ok) throw new Error("Lấy chi tiết thất bại");
-    const data = await res.json();
-    setSelectedPackage(data);
-    setOpenDetail(true);
-  } catch (error) {
-    console.error(error);
-  }
-};
+
 
 const handleDelete = async (id: number) => {
   if (!deleteId) return;
@@ -95,34 +112,36 @@ const handleDelete = async (id: number) => {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-4">
+    <div className="grid gap-6 md:grid-cols-4">
       <StatCard
-  title="Tổng dữ liệu"
-  value={`${datasets.length}`}
-  icon={Database}
-  change={`${datasets.length} bộ dữ liệu`}
-  changeType="positive"
-/>
-
-        <StatCard
-          title="Đang hoạt động"
-          value="3"
-          icon={Activity}
-          change="75% tỷ lệ hoạt động"
-          changeType="positive"
-        />
-        <StatCard
-          title="Đã phê duyệt"
-          value="3"
-          icon={CheckCircle}
-        />
-          <StatCard
-        title="Chờ duyệt"
-        value={`${pendingCount}`}
-        icon={Clock}
+        title="Tổng dữ liệu"
+        value={`${dashboardData.totalData}`}
+        icon={Database}
+        change={`${dashboardData.totalData} bộ dữ liệu`}
+        changeType="positive"
       />
-      </div>
+      <StatCard
+        title="Đang hoạt động"
+        value={`${dashboardData.activeData}`}
+        icon={Activity}
+        change={`${dashboardData.activeData} đang hoạt động`}
+        changeType="positive"
+      />
+      <StatCard
+        title="Đã phê duyệt"
+        value={`${dashboardData.approvedData}`}
+        icon={CheckCircle}
+        change={`${dashboardData.approvedData} đã duyệt`}
+      />
+      <StatCard
+        title="Chờ duyệt"
+        value={`${dashboardData.pendingData}`}
+        icon={Clock}
+        change={`${dashboardData.pendingData} đang chờ`}
+      />
+    </div>
 
+      {/* Form đăng ký */}
       <Card>
         <CardHeader>
           <CardTitle>Đăng ký nguồn dữ liệu mới</CardTitle>
@@ -151,7 +170,7 @@ const handleDelete = async (id: number) => {
           </div>
           <div className="space-y-2">
             <Label htmlFor="description">Mô tả</Label>
-            <Textarea id="description" placeholder="Mô tả chi tiết về bộ dữ liệu..." rows={3} />
+            <Textarea id="description" placeholder="Mô tả chi tiết..." rows={3} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="format">Định dạng dữ liệu</Label>
@@ -161,7 +180,7 @@ const handleDelete = async (id: number) => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="raw">Raw Data (CSV, JSON)</SelectItem>
-                <SelectItem value="analyzed">Đã phân tích (Reports, Insights)</SelectItem>
+                <SelectItem value="analyzed">Đã phân tích (Reports)</SelectItem>
                 <SelectItem value="both">Cả hai</SelectItem>
               </SelectContent>
             </Select>
@@ -208,7 +227,7 @@ const handleDelete = async (id: number) => {
                 <TableRow key={dataset.packageId}>
                    <TableCell className="font-medium">{dataset.packageName}</TableCell>
   <TableCell>{dataset.description}</TableCell>
-  <TableCell>{dataset.version}</TableCell>
+  <TableCell>{dataset.fileSize}</TableCell>
   <TableCell>
     {/* Đổi hiển thị trạng thái ở đây */}
     <Badge
@@ -227,17 +246,17 @@ const handleDelete = async (id: number) => {
         : "Chờ duyệt"}
     </Badge>
   </TableCell>
-  <TableCell>{dataset.uploads}</TableCell>
-  <TableCell className="font-semibold text-success">{dataset.revenue}</TableCell>
+  <TableCell>{dataset.downloadCount}</TableCell>
+  <TableCell className="font-semibold text-success">{dataset.revenueCount} VND</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleViewDetail(dataset.packageId)}>
-  <FileText className="h-4 w-4" />
-</Button>
+                      {/* <Button variant="ghost" size="icon" onClick={() => handleViewDetail(dataset.packageId)}>
+                        <FileText className="h-4 w-4" />
+                      </Button> */}
 
-                      <Button variant="ghost" size="icon">
+                      {/* <Button variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
-                      </Button>
+                      </Button> */}
                       <Button
   variant="ghost"
   size="icon"

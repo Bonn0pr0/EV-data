@@ -22,7 +22,6 @@ const menuItems = [
   { title: "Nguồn dữ liệu", url: "/staff", icon: Database },
   { title: "Chính sách & Giá", url: "/staff/pricing", icon: DollarSign },
   { title: "Doanh thu", url: "/staff/revenue", icon: TrendingUp },
-  { title: "Bảo mật & Ẩn danh", url: "/staff/privacy", icon: Shield },
 ];
 
 export function StaffSidebar() {
