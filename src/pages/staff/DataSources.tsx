@@ -84,7 +84,6 @@ const handleConfirmDelete = (id: number) => {
   };
 
 useEffect(() => {
-  const userId = 6; // sau này thay bằng user từ AuthContext
   const fetchDashboard = async () => {
     try {
       const res = await fetch(`/api/DataPackage/dashboard/${userId}`);

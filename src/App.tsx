@@ -30,6 +30,8 @@ import ConsumerLayout from "./pages/consumer/ConsumerLayout";
 import Cart from "./pages/consumer/Cart";
 import Checkout from "./pages/consumer/Checkout";
 import MyPurchases from "./pages/consumer/MyPurchases";
+import PaymentMomo from "./pages/consumer/PaymentMomo";
+import PaymentVNPay from "./pages/consumer/PaymentVNPay";
 
 function App() {
   return (
@@ -90,6 +92,8 @@ function App() {
               <Route path="cart" element={<Cart />} />
               <Route path="checkout" element={<Checkout />} />
               <Route path="purchases" element={<MyPurchases />} />
+              <Route path="payment-momo" element={<PaymentMomo />} />
+              <Route path="payment-vnpay" element={<PaymentVNPay />} />
             </Route>
             {/* 404 */}
             <Route path="*" element={<NotFound />} />
