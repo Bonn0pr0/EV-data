@@ -96,7 +96,7 @@ export default function Checkout() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent">
+                  {/* <div className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent">
                     <RadioGroupItem value="credit-card" id="credit-card" />
                     <Label htmlFor="credit-card" className="flex items-center gap-3 cursor-pointer flex-1">
                       <CreditCard className="h-5 w-5" />
@@ -116,15 +116,32 @@ export default function Checkout() {
                         <p className="text-sm text-muted-foreground">Thanh toán qua ngân hàng</p>
                       </div>
                     </Label>
+                  </div> */}
+
+                  <div 
+                    className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent"
+                    onClick={() => navigate("/consumer/payment-momo", { state: { total, items: cartItems } })}
+                  >
+                    <RadioGroupItem value="momo" id="momo" />
+                    <Label htmlFor="momo" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <Wallet className="h-5 w-5 text-pink-600" />
+                      <div>
+                        <p className="font-medium">MoMo</p>
+                        <p className="text-sm text-muted-foreground">Ví điện tử MoMo</p>
+                      </div>
+                    </Label>
                   </div>
 
-                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent">
-                    <RadioGroupItem value="e-wallet" id="e-wallet" />
-                    <Label htmlFor="e-wallet" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <Wallet className="h-5 w-5" />
+                  <div 
+                    className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent"
+                    onClick={() => navigate("/consumer/payment-vnpay", { state: { total, items: cartItems } })}
+                  >
+                    <RadioGroupItem value="vnpay" id="vnpay" />
+                    <Label htmlFor="vnpay" className="flex items-center gap-3 cursor-pointer flex-1">
+                      <Wallet className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="font-medium">Ví điện tử</p>
-                        <p className="text-sm text-muted-foreground">MoMo, ZaloPay, VNPay</p>
+                        <p className="font-medium">VNPay</p>
+                        <p className="text-sm text-muted-foreground">Cổng thanh toán VNPay</p>
                       </div>
                     </Label>
                   </div>
