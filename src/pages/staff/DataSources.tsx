@@ -14,12 +14,17 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,DialogFooter } from "@/components/ui/dialog";
 
 export default function DataSources() {
-  const mockDatasets = [
-    { id: 1, name: "Dữ liệu pin Tesla Model 3", type: "Pin", size: "2.5 GB", status: "active", uploads: 1250, revenue: "45,000,000₫" },
-    { id: 2, name: "Hành trình VinFast VF8", type: "Hành trình", size: "1.8 GB", status: "pending", uploads: 0, revenue: "0₫" },
-    { id: 3, name: "Dữ liệu sạc nhanh", type: "Sạc", size: "980 MB", status: "active", uploads: 890, revenue: "32,000,000₫" },
-    { id: 4, name: "Giao dịch điện năng", type: "Giao dịch", size: "450 MB", status: "active", uploads: 560, revenue: "18,500,000₫" },
-  ];
+const [packageName, setPackageName] = useState("");
+const [description, setDescription] = useState("");
+const [version, setVersion] = useState("");
+const [subCategoryName, setSubCategoryName] = useState("");
+const [metaType, setMetaType] = useState("");
+const [metaTitle, setMetaTitle] = useState("");
+const [metaDescription, setMetaDescription] = useState("");
+const [metaKeywords, setMetaKeywords] = useState("");
+const [fileFormat, setFileFormat] = useState("");
+const [fileSize, setFileSize] = useState("");
+
 const [datasets, setDatasets] = useState([]);
 const [dashboardData, setDashboardData] = useState({
   totalData: 0,
@@ -27,7 +32,7 @@ const [dashboardData, setDashboardData] = useState({
   approvedData: 0,
   pendingData: 0,
 });
-
+  const userId = sessionStorage.getItem("userId");
  // detail button 
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [openDetail, setOpenDetail] = useState(false);
@@ -40,6 +45,43 @@ const handleConfirmDelete = (id: number) => {
   setDeleteId(id);
   setOpenDelete(true);
 };
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newPackage = {
+      packageName,
+      description,
+      version,
+      releaseDate: new Date().toISOString(),
+      lastUpdate: new Date().toISOString(),
+      status: "Pending",
+      userId,
+      subCategoryName,
+      metaData: {
+        type: metaType,
+        title: metaTitle,
+        description: metaDescription,
+        keywords: metaKeywords,
+        fileFormat,
+        fileSize: Number(fileSize),
+      },
+    };
+
+    try {
+      const res = await fetch("/api/DataPackage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPackage),
+      });
+
+      if (!res.ok) throw new Error("Không thể tạo mới gói dữ liệu");
+
+      alert("Tạo gói dữ liệu thành công!");
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("Đăng ký thất bại!");
+    }
+  };
 
 useEffect(() => {
   const userId = 6; // sau này thay bằng user từ AuthContext
@@ -70,14 +112,6 @@ useEffect(() => {
 }, []);
 
 
-useEffect(() => {
-  const fetchData = async () => {
-    const res = await fetch(`/api/DataPackage`);
-    const data = await res.json();
-    setDatasets(data);
-  }; 
-  fetchData();
-}, []);
 
 
 
@@ -142,60 +176,128 @@ const handleDelete = async (id: number) => {
     </div>
 
       {/* Form đăng ký */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Đăng ký nguồn dữ liệu mới</CardTitle>
-          <CardDescription>Thêm dữ liệu mới vào marketplace</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Tên bộ dữ liệu</Label>
-              <Input id="name" placeholder="VD: Dữ liệu pin Tesla Model 3" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="type">Loại dữ liệu</Label>
-              <Select>
-                <SelectTrigger id="type">
-                  <SelectValue placeholder="Chọn loại" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="battery">Dữ liệu pin</SelectItem>
-                  <SelectItem value="trip">Hành trình</SelectItem>
-                  <SelectItem value="charging">Sạc</SelectItem>
-                  <SelectItem value="transaction">Giao dịch điện</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="description">Mô tả</Label>
-            <Textarea id="description" placeholder="Mô tả chi tiết..." rows={3} />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="format">Định dạng dữ liệu</Label>
-            <Select>
-              <SelectTrigger id="format">
-                <SelectValue placeholder="Chọn định dạng" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="raw">Raw Data (CSV, JSON)</SelectItem>
-                <SelectItem value="analyzed">Đã phân tích (Reports)</SelectItem>
-                <SelectItem value="both">Cả hai</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex gap-4">
-            <Button variant="outline" className="flex-1">
-              <Upload className="h-4 w-4 mr-2" />
-              Tải lên dữ liệu
-            </Button>
-            <Button className="flex-1 bg-gradient-primary hover:opacity-90">
-              Đăng ký
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+<Card>
+  <CardHeader>
+    <CardTitle>Đăng ký nguồn dữ liệu mới</CardTitle>
+    <CardDescription>Thêm dữ liệu mới vào marketplace</CardDescription>
+  </CardHeader>
+
+  <CardContent className="space-y-4">
+    <form>
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="packageName">Tên bộ dữ liệu</Label>
+          <Input
+            id="packageName"
+            value={packageName}
+            onChange={(e) => setPackageName(e.target.value)}
+            placeholder="VD: Dữ liệu pin Tesla Model 3"
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="version">Phiên bản</Label>
+          <Input
+            id="version"
+            value={version}
+            onChange={(e) => setVersion(e.target.value)}
+            placeholder="v1.0"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Mô tả</Label>
+        <Textarea
+          id="description"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Mô tả chi tiết..."
+          rows={3}
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="subcategory">Danh mục con</Label>
+          <Input
+            id="subcategory"
+            value={subCategoryName}
+            onChange={(e) => setSubCategoryName(e.target.value)}
+            placeholder="VD: Dữ liệu hành trình xe"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="metaType">Loại Metadata</Label>
+          <Input
+            id="metaType"
+            value={metaType}
+            onChange={(e) => setMetaType(e.target.value)}
+            placeholder="VD: Phân tích, thô, tổng hợp"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="metaTitle">Tiêu đề Metadata</Label>
+        <Input
+          id="metaTitle"
+          value={metaTitle}
+          onChange={(e) => setMetaTitle(e.target.value)}
+          placeholder="VD: Báo cáo dữ liệu pin Tesla"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="metaDescription">Mô tả Metadata</Label>
+        <Textarea
+          id="metaDescription"
+          value={metaDescription}
+          onChange={(e) => setMetaDescription(e.target.value)}
+          placeholder="VD: Bộ dữ liệu bao gồm các thông tin chi tiết về hiệu suất pin..."
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="space-y-2">
+          <Label htmlFor="metaKeywords">Từ khóa Metadata</Label>
+          <Input
+            id="metaKeywords"
+            value={metaKeywords}
+            onChange={(e) => setMetaKeywords(e.target.value)}
+            placeholder="VD: pin, điện, xe hơi, Tesla"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="fileFormat">Định dạng dữ liệu</Label>
+          <Input
+            id="fileFormat"
+            value={fileFormat}
+            onChange={(e) => setFileFormat(e.target.value)}
+            placeholder="VD: CSV, JSON"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="fileSize">Kích thước tệp (MB)</Label>
+        <Input
+          id="fileSize"
+          type="number"
+          value={fileSize}
+          onChange={(e) => setFileSize(e.target.value)}
+          placeholder="VD: 200"
+        />
+      </div>
+
+      <div className="flex gap-4">
+        <Button type="submit" className="flex-1 bg-gradient-primary hover:opacity-90">
+          Đăng ký
+        </Button>
+      </div>
+    </form>
+  </CardContent>
+</Card>
 
       <Card>
         <CardHeader>
@@ -254,9 +356,9 @@ const handleDelete = async (id: number) => {
                         <FileText className="h-4 w-4" />
                       </Button> */}
 
-                      {/* <Button variant="ghost" size="icon">
+                      <Button variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
-                      </Button> */}
+                      </Button>
                       <Button
   variant="ghost"
   size="icon"
