@@ -82,42 +82,7 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <ul className="space-y-4">
-              <li className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                <div>
-                  <span className="font-medium text-gray-800">
-                    Nguyễn Văn A
-                  </span>{" "}
-                  đã tải lên bộ dữ liệu mới
-                  <div className="text-sm text-gray-500">5 phút trước</div>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                <div>
-                  <span className="font-medium text-gray-800">
-                    Trần Thị B
-                  </span>{" "}
-                  đã mua bộ dữ liệu EV Battery Data
-                  <div className="text-sm text-gray-500">15 phút trước</div>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                <div>
-                  <span className="font-medium text-gray-800">Lê Văn C</span> đã
-                  yêu cầu kiểm duyệt dữ liệu
-                  <div className="text-sm text-gray-500">1 giờ trước</div>
-                </div>
-              </li>
-              <li className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full mt-2" />
-                <div>
-                  <span className="font-medium text-gray-800">Phạm Thị D</span>{" "}
-                  đã cập nhật thông tin tài khoản
-                  <div className="text-sm text-gray-500">2 giờ trước</div>
-                </div>
-              </li>
+
             </ul>
           </CardContent>
         </Card>
