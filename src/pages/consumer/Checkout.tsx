@@ -1,38 +1,77 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { CreditCard, Building2, Wallet, Lock, CheckCircle } from "lucide-react";
+import { Wallet, Lock, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Checkout() {
   const navigate = useNavigate();
-  const [paymentMethod, setPaymentMethod] = useState("credit-card");
+  const { user } = useAuth();
+  const [paymentMethod, setPaymentMethod] = useState("momo");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [cartItems, setCartItems] = useState([]);
+  const [userData, setUserData] = useState(null);
 
-  const cartItems = [
-    { name: "Battery Performance Dataset Q4 2024", price: 2500, quantity: 1 },
-    { name: "Charging Station Usage Patterns", price: 1800, quantity: 1 },
-  ];
+  useEffect(() => {
+    if (!user?.userId) return;
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
+    const fetchData = async () => {
+      try {
+        const [cartRes, userRes] = await Promise.all([
+          fetch(`/api/Cart?userId=${user.userId}`),
+          fetch(`/api/Users/${user.userId}`)
+        ]);
 
-  const handlePayment = async (e: React.FormEvent) => {
+        if (!cartRes.ok) throw new Error("Không thể tải giỏ hàng");
+        if (!userRes.ok) throw new Error("Không thể tải thông tin người dùng");
+
+        const cartData = await cartRes.json();
+        const userInfo = await userRes.json();
+
+        setCartItems(cartData);
+        setUserData(userInfo);
+      } catch (err) {
+        console.error(err);
+        toast.error("Không thể tải dữ liệu từ server!");
+      }
+    };
+
+    fetchData();
+  }, [user]);
+
+  const subtotal = cartItems.reduce((sum, item) => sum + item.totalAmout, 0);
+  const vat = 0;
+  const total = subtotal + vat;
+
+  const handlePayment = async (e) => {
     e.preventDefault();
+    if (!cartItems.length) {
+      toast.warning("Giỏ hàng trống!");
+      return;
+    }
+
     setIsProcessing(true);
 
-    // Simulate payment processing
+    // Giả lập xử lý thanh toán
     setTimeout(() => {
       setIsProcessing(false);
-      toast.success("Thanh toán thành công!");
-      navigate("/consumer/my-purchases");
-    }, 2000);
+
+      // 👉 Điều hướng tùy phương thức thanh toán
+      if (paymentMethod === "momo") {
+        navigate("/consumer/payment-momo", { state: { total, items: cartItems } });
+      } else if (paymentMethod === "vnpay") {
+        navigate("/consumer/payment-vnpay", { state: { total, items: cartItems } });
+      } else {
+        toast.success("Thanh toán thành công!");
+        navigate("/consumer/my-purchases");
+      }
+    }, 1500);
   };
 
   return (
@@ -44,51 +83,36 @@ export default function Checkout() {
 
       <form onSubmit={handlePayment}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Payment Form */}
+          {/* Thông tin thanh toán */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Billing Information */}
             <Card className="shadow-card border-border/50">
               <CardHeader>
                 <CardTitle>Thông tin thanh toán</CardTitle>
-                <CardDescription>Nhập thông tin của bạn</CardDescription>
+                <CardDescription>Thông tin người dùng</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">Họ</Label>
-                    <Input id="firstName" placeholder="Nguyễn" required />
+                    <Label>Họ và tên</Label>
+                    <Input value={userData?.fullName || ""} readOnly />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Tên</Label>
-                    <Input id="lastName" placeholder="Văn A" required />
+                    <Label>Email</Label>
+                    <Input value={userData?.email || ""} readOnly />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" placeholder="email@example.com" required />
+                  <Label>Số điện thoại</Label>
+                  <Input value={userData?.phone || ""} readOnly />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="company">Công ty (tùy chọn)</Label>
-                  <Input id="company" placeholder="Tên công ty" />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="address">Địa chỉ</Label>
-                  <Input id="address" placeholder="Số nhà, tên đường" required />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="city">Thành phố</Label>
-                    <Input id="city" placeholder="Hà Nội" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="zipcode">Mã bưu điện</Label>
-                    <Input id="zipcode" placeholder="100000" required />
-                  </div>
+                  <Label>Tổ chức / Công ty</Label>
+                  <Input value={userData?.organizationId || ""} readOnly />
                 </div>
               </CardContent>
             </Card>
 
-            {/* Payment Method */}
+            {/* Phương thức thanh toán */}
             <Card className="shadow-card border-border/50">
               <CardHeader>
                 <CardTitle>Phương thức thanh toán</CardTitle>
@@ -96,34 +120,9 @@ export default function Checkout() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  {/* <div className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent">
-                    <RadioGroupItem value="credit-card" id="credit-card" />
-                    <Label htmlFor="credit-card" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <CreditCard className="h-5 w-5" />
-                      <div>
-                        <p className="font-medium">Thẻ tín dụng / Ghi nợ</p>
-                        <p className="text-sm text-muted-foreground">Visa, Mastercard, JCB</p>
-                      </div>
-                    </Label>
-                  </div>
-
-                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent">
-                    <RadioGroupItem value="bank-transfer" id="bank-transfer" />
-                    <Label htmlFor="bank-transfer" className="flex items-center gap-3 cursor-pointer flex-1">
-                      <Building2 className="h-5 w-5" />
-                      <div>
-                        <p className="font-medium">Chuyển khoản ngân hàng</p>
-                        <p className="text-sm text-muted-foreground">Thanh toán qua ngân hàng</p>
-                      </div>
-                    </Label>
-                  </div> */}
-
-                  <div 
-                    className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent"
-                    onClick={() => navigate("/consumer/payment-momo", { state: { total, items: cartItems } })}
-                  >
+                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent cursor-pointer">
                     <RadioGroupItem value="momo" id="momo" />
-                    <Label htmlFor="momo" className="flex items-center gap-3 cursor-pointer flex-1">
+                    <Label htmlFor="momo" className="flex items-center gap-3 flex-1 cursor-pointer">
                       <Wallet className="h-5 w-5 text-pink-600" />
                       <div>
                         <p className="font-medium">MoMo</p>
@@ -132,12 +131,9 @@ export default function Checkout() {
                     </Label>
                   </div>
 
-                  <div 
-                    className="flex items-center space-x-3 rounded-lg border border-border p-4 cursor-pointer hover:bg-accent"
-                    onClick={() => navigate("/consumer/payment-vnpay", { state: { total, items: cartItems } })}
-                  >
+                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent cursor-pointer">
                     <RadioGroupItem value="vnpay" id="vnpay" />
-                    <Label htmlFor="vnpay" className="flex items-center gap-3 cursor-pointer flex-1">
+                    <Label htmlFor="vnpay" className="flex items-center gap-3 flex-1 cursor-pointer">
                       <Wallet className="h-5 w-5 text-blue-600" />
                       <div>
                         <p className="font-medium">VNPay</p>
@@ -146,29 +142,6 @@ export default function Checkout() {
                     </Label>
                   </div>
                 </RadioGroup>
-
-                {paymentMethod === "credit-card" && (
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="cardNumber">Số thẻ</Label>
-                      <Input
-                        id="cardNumber"
-                        placeholder="1234 5678 9012 3456"
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">Ngày hết hạn</Label>
-                        <Input id="expiry" placeholder="MM/YY" required />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">CVV</Label>
-                        <Input id="cvv" placeholder="123" maxLength={3} required />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -178,7 +151,7 @@ export default function Checkout() {
             </div>
           </div>
 
-          {/* Order Summary */}
+          {/* Đơn hàng */}
           <div className="lg:col-span-1">
             <Card className="shadow-card sticky top-6">
               <CardHeader>
@@ -189,32 +162,30 @@ export default function Checkout() {
                   {cartItems.map((item, index) => (
                     <div key={index} className="flex justify-between text-sm">
                       <div className="flex-1">
-                        <p className="font-medium">{item.name}</p>
+                        <p className="font-medium">{item.packageName}</p>
                         <p className="text-muted-foreground">x{item.quantity}</p>
                       </div>
-                      <span className="font-medium">${item.price}</span>
+                      <span className="font-medium">
+                        {item.totalAmout.toLocaleString()}₫
+                      </span>
                     </div>
                   ))}
                 </div>
 
-                <Separator />
-
                 <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">Tạm tính</span>
-                    <span className="font-medium">${subtotal.toLocaleString()}</span>
+                    <span className="font-medium">{subtotal.toLocaleString('vi-VN')} VND</span>
                   </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">VAT (10%)</span>
-                    <span className="font-medium">${tax.toLocaleString()}</span>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VAT (0%)</span>
+                    <span className="font-medium">{vat} VND</span>
                   </div>
-                </div>
-
-                <Separator />
-
-                <div className="flex justify-between text-lg font-bold">
-                  <span>Tổng cộng</span>
-                  <span className="text-success">${total.toLocaleString()}</span>
+                  <Separator />
+                  <div className="flex justify-between text-lg font-bold">
+                    <span>Tổng cộng</span>
+                    <span className="text-success">{total.toLocaleString('vi-VN')} VND</span>
+                  </div>
                 </div>
 
                 <Button
@@ -235,11 +206,6 @@ export default function Checkout() {
                     </>
                   )}
                 </Button>
-
-                <p className="text-xs text-center text-muted-foreground">
-                  Bằng cách hoàn tất đơn hàng, bạn đồng ý với{" "}
-                  <a href="#" className="underline">Điều khoản dịch vụ</a>
-                </p>
               </CardContent>
             </Card>
           </div>
