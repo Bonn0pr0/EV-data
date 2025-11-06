@@ -138,7 +138,7 @@ const Market = () => {
                 
                 <div className="flex items-center justify-between pt-2 border-t border-border">
                   <div>
-                    <span className="text-lg font-bold text-foreground">{dataset.pricingPlan} VND</span>
+                    <span className="text-lg font-bold text-foreground">{dataset.pricingPlan.toLocaleString('vi-VN')} VND</span>
                   </div>
                   <Button
                     size="sm"
@@ -215,7 +215,7 @@ const Market = () => {
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Giá</p>
-                      <p className="font-bold text-lg text-success">{selectedDataset.pricingPlan} VND</p>
+                      <p className="font-bold text-lg text-success">{selectedDataset.pricingPlan.toLocaleString('vi-VN')} VND</p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Loại</p>
@@ -319,10 +319,10 @@ const Market = () => {
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3 pt-4">
-                <Button className="bg-gradient-primary flex-1 min-w-[150px]">
+                {/* <Button className="bg-gradient-primary flex-1 min-w-[150px]">
                   <Download className="h-4 w-4 mr-2" />
                   Mua ngay
-                </Button>
+                </Button> */}
                 <Button
                   variant="outline"
                   className="flex-1 min-w-[150px]"

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Package, ShoppingCart, TrendingUp, Key, Home, CreditCard, AlertTriangle } from "lucide-react";
+import { Package, ShoppingCart, TrendingUp, Key, Home, CreditCard, AlertTriangle,FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function ConsumerSidebar() {
@@ -9,6 +9,7 @@ export function ConsumerSidebar() {
     // { to: "/consumer/marketplace", icon: Package, label: "Marketplace" },
     { to: "/consumer/cart", icon: ShoppingCart, label: "Giỏ Hàng" },
     { to: "/consumer/purchases", icon: CreditCard, label: "Đơn Mua" },
+    { to: "/consumer/invoices", icon: FileText, label: "Hóa Đơn" },
   ];
 
   return (

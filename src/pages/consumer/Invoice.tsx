@@ -11,12 +11,16 @@ export default function Invoice() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const invoiceData = location.state || {
-    orderId: `INV${Date.now()}`,
-    method: "Credit Card",
+  const invoiceData = location.state?.invoiceData || {
+    invoiceNumber: `INV${Date.now()}`,
+    orderId: `ORD${Date.now()}`,
+    paymentMethod: "Credit Card",
     total: 4730,
+    subtotal: 4300,
+    vat: 430,
     items: [],
-    date: new Date().toLocaleDateString('vi-VN')
+    date: new Date().toLocaleDateString('vi-VN'),
+    status: 'paid'
   };
 
   useEffect(() => {
@@ -132,7 +136,7 @@ export default function Invoice() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phương thức:</span>
-                  <span className="font-medium">{invoiceData.method}</span>
+                  <span className="font-medium">{invoiceData.paymentMethod}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Trạng thái:</span>
@@ -200,25 +204,19 @@ export default function Invoice() {
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tạm tính:</span>
               <span className="font-medium">
-                ${invoiceData.items?.length > 0 
-                  ? invoiceData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0).toLocaleString()
-                  : '4,300'
-                }
+                ${invoiceData.subtotal?.toLocaleString() || '4,300'}
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">VAT (10%):</span>
               <span className="font-medium">
-                ${invoiceData.items?.length > 0
-                  ? (invoiceData.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0) * 0.1).toLocaleString()
-                  : '430'
-                }
+                ${invoiceData.vat?.toLocaleString() || '430'}
               </span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>TỔNG CỘNG:</span>
-              <span className="text-success text-2xl">${invoiceData.total.toLocaleString()}</span>
+              <span className="text-success text-2xl">${invoiceData.total?.toLocaleString() || '0'}</span>
             </div>
           </div>
 
@@ -230,7 +228,7 @@ export default function Invoice() {
                 <div className="flex-1 text-sm">
                   <p className="font-medium mb-1">Thông tin thanh toán:</p>
                   <p className="text-muted-foreground">
-                    Đã thanh toán qua {invoiceData.method} vào ngày {invoiceData.date}
+                    Đã thanh toán qua {invoiceData.paymentMethod} vào ngày {invoiceData.date}
                   </p>
                 </div>
               </div>

@@ -146,7 +146,7 @@ export default function Cart() {
                         </div>
 
                         <div className="flex items-center gap-4">
-                          <span className="text-xl font-bold">${item.totalAmout}</span>
+                          <span className="text-xl font-bold">{item.totalAmout.toLocaleString('vi-VN')} VND</span>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -175,16 +175,16 @@ export default function Cart() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Tạm tính</span>
-                  <span className="font-medium">${subtotal.toLocaleString()}</span>
+                  <span className="font-medium">{subtotal.toLocaleString('vi-VN')} VND</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">VAT (0%)</span>
-                  <span className="font-medium">${0}</span>
+                  <span className="font-medium">{0} VND</span>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Tổng cộng</span>
-                  <span className="text-success">${total.toLocaleString()}</span>
+                  <span className="text-success">{total.toLocaleString('vi-VN')} VND</span>
                 </div>
               </div>
 
