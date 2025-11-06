@@ -1,87 +1,129 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import axios from "axios";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Eye, Download, FileText } from "lucide-react";
 
-// Mock data for invoices
-const mockInvoices = [
-  {
-    id: "INV-2024-001",
-    orderId: "ORD-2024-001",
-    date: "2024-01-15",
-    items: 3,
-    total: 15000000,
-    status: "paid",
-    paymentMethod: "Ví MoMo"
-  },
-  {
-    id: "INV-2024-002",
-    orderId: "ORD-2024-002",
-    date: "2024-01-20",
-    items: 1,
-    total: 8000000,
-    status: "paid",
-    paymentMethod: "VNPay"
-  },
-  {
-    id: "INV-2024-003",
-    orderId: "ORD-2024-003",
-    date: "2024-02-05",
-    items: 2,
-    total: 12000000,
-    status: "pending",
-    paymentMethod: "Chuyển khoản"
-  },
-];
+interface Invoice {
+  invoiceId: number;
+  invoiceName: string;
+  issueDay: string;
+  packageCount: number;
+  sumPrice: number;
+  methodName: string;
+  status: string;
+}
 
-export default function Invoices() {
+interface Report {
+  sumCart: number;
+  statusCount: number;
+  totalPrice: number;
+}
+
+export default function MyPurchases() {
   const navigate = useNavigate();
-  const [invoices] = useState(mockInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [report, setReport] = useState<Report | null>(null);
+
+  // ✅ Lấy userId từ sessionStorage
+  const userId = sessionStorage.getItem("userId") || localStorage.getItem("userId");
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    return new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(amount);
   };
 
-  const handleViewInvoice = (invoice: typeof mockInvoices[0]) => {
-    navigate('/consumer/invoice', {
+  const fetchInvoices = async () => {
+    try {
+      const res = await axios.get(`/api/Dashboard/order-list/${userId}`
+      );
+      setInvoices(res.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách hóa đơn:", error);
+    }
+  };
+
+  const fetchReport = async () => {
+    try {
+      const res = await axios.get(`/api/Dashboard/order-report/${userId}`
+      );
+      setReport(res.data);
+    } catch (error) {
+      console.error("Lỗi khi lấy báo cáo:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchInvoices();
+      fetchReport();
+    }
+  }, [userId]);
+
+  const handleViewInvoice = (invoice: Invoice) => {
+    navigate("/consumer/invoice", {
       state: {
         invoiceData: {
-          invoiceNumber: invoice.id,
-          orderId: invoice.orderId,
-          date: invoice.date,
+          invoiceNumber: invoice.invoiceName,
+          orderId: invoice.invoiceId,
+          date: invoice.issueDay,
           items: [
             {
               name: "Gói dữ liệu EV",
               description: "Dữ liệu xe điện toàn diện",
-              quantity: invoice.items,
-              price: invoice.total / invoice.items,
-              total: invoice.total
-            }
+              quantity: invoice.packageCount,
+              price: invoice.sumPrice / invoice.packageCount,
+              total: invoice.sumPrice,
+            },
           ],
-          subtotal: invoice.total,
-          vat: invoice.total * 0.1,
-          total: invoice.total * 1.1,
-          paymentMethod: invoice.paymentMethod,
-          status: invoice.status
-        }
-      }
+          subtotal: invoice.sumPrice,
+          vat: invoice.sumPrice * 0.1,
+          total: invoice.sumPrice * 1.1,
+          paymentMethod: invoice.methodName,
+          status: invoice.status,
+        },
+      },
     });
   };
 
   const getStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case "paid":
-        return <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">Đã thanh toán</Badge>;
+        return (
+          <Badge className="bg-green-500/10 text-green-500 hover:bg-green-500/20">
+            Đã thanh toán
+          </Badge>
+        );
       case "pending":
-        return <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">Chờ thanh toán</Badge>;
+        return (
+          <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">
+            Chờ thanh toán
+          </Badge>
+        );
       case "cancelled":
-        return <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20">Đã hủy</Badge>;
+        return (
+          <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20">
+            Đã hủy
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -104,7 +146,7 @@ export default function Invoices() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{invoices.length}</div>
+            <div className="text-2xl font-bold">{report?.sumCart ?? 0}</div>
             <p className="text-xs text-muted-foreground">Tất cả thời gian</p>
           </CardContent>
         </Card>
@@ -115,9 +157,7 @@ export default function Invoices() {
             <FileText className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {invoices.filter(inv => inv.status === 'paid').length}
-            </div>
+            <div className="text-2xl font-bold">{report?.statusCount ?? 0}</div>
             <p className="text-xs text-muted-foreground">Hóa đơn hoàn thành</p>
           </CardContent>
         </Card>
@@ -129,7 +169,7 @@ export default function Invoices() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(invoices.reduce((sum, inv) => sum + inv.total, 0))}
+              {formatCurrency(report?.totalPrice ?? 0)}
             </div>
             <p className="text-xs text-muted-foreground">Tất cả thời gian</p>
           </CardContent>
@@ -158,34 +198,44 @@ export default function Invoices() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
-                  <TableCell className="font-medium">{invoice.id}</TableCell>
-                  <TableCell>{new Date(invoice.date).toLocaleDateString('vi-VN')}</TableCell>
-                  <TableCell>{invoice.items}</TableCell>
-                  <TableCell className="font-semibold">{formatCurrency(invoice.total)}</TableCell>
-                  <TableCell>{invoice.paymentMethod}</TableCell>
-                  <TableCell>{getStatusBadge(invoice.status)}</TableCell>
-                  <TableCell className="text-right space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewInvoice(invoice)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Xem
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleViewInvoice(invoice)}
-                    >
-                      <Download className="h-4 w-4 mr-1" />
-                      Tải
-                    </Button>
+              {invoices.length > 0 ? (
+                invoices.map((invoice) => (
+                  <TableRow key={invoice.invoiceId}>
+                    <TableCell className="font-medium">
+                      {invoice.invoiceName}
+                    </TableCell>
+                    <TableCell>
+                      {new Date(invoice.issueDay).toLocaleDateString("vi-VN")}
+                    </TableCell>
+                    <TableCell>{invoice.packageCount}</TableCell>
+                    <TableCell className="font-semibold">
+                      {formatCurrency(invoice.sumPrice)}
+                    </TableCell>
+                    <TableCell>{invoice.methodName}</TableCell>
+                    <TableCell>{getStatusBadge(invoice.status)}</TableCell>
+                    <TableCell className="text-right space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewInvoice(invoice)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Xem
+                      </Button>
+                      <Button variant="ghost" size="sm">
+                        <Download className="h-4 w-4 mr-1" />
+                        Tải
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground py-6">
+                    Không có hóa đơn nào được tìm thấy.
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </CardContent>
