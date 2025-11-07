@@ -96,7 +96,7 @@ function App() {
               <Route path="purchases" element={<MyPurchases />} />
               <Route path="payment-momo" element={<PaymentMomo />} />
               <Route path="payment-vnpay" element={<PaymentVNPay />} />
-              <Route path="invoice" element={<Invoice />} />
+              <Route path="invoice/:invoiceId" element={<Invoice />} />
               <Route path="invoices" element={<Invoices />} />
             </Route>
             {/* 404 */}

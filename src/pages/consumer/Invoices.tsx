@@ -78,31 +78,31 @@ export default function MyPurchases() {
     }
   }, [userId]);
 
-  const handleViewInvoice = (invoice: Invoice) => {
-    navigate("/consumer/invoice", {
-      state: {
-        invoiceData: {
-          invoiceNumber: invoice.invoiceName,
-          orderId: invoice.invoiceId,
-          date: invoice.issueDay,
-          items: [
-            {
-              name: "Gói dữ liệu EV",
-              description: "Dữ liệu xe điện toàn diện",
-              quantity: invoice.packageCount,
-              price: invoice.sumPrice / invoice.packageCount,
-              total: invoice.sumPrice,
-            },
-          ],
-          subtotal: invoice.sumPrice,
-          vat: invoice.sumPrice * 0.1,
-          total: invoice.sumPrice * 1.1,
-          paymentMethod: invoice.methodName,
-          status: invoice.status,
-        },
+const handleViewInvoice = (invoice: Invoice) => {
+  navigate(`/consumer/invoice/${invoice.invoiceId}`, {
+    state: {
+      invoiceData: {
+        invoiceNumber: invoice.invoiceName,
+        orderId: invoice.invoiceId,
+        date: invoice.issueDay,
+        items: [
+          {
+            name: "Gói dữ liệu EV",
+            description: "Dữ liệu xe điện toàn diện",
+            quantity: invoice.packageCount,
+            price: invoice.sumPrice / invoice.packageCount,
+            total: invoice.sumPrice,
+          },
+        ],
+        subtotal: invoice.sumPrice,
+        vat: invoice.sumPrice * 0.1,
+        total: invoice.sumPrice * 1.1,
+        paymentMethod: invoice.methodName || "Chưa có phương thức thanh toán", 
+        status: invoice.status,
       },
-    });
-  };
+    },
+  });
+};
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {

@@ -1,35 +1,62 @@
-import { useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Download, Printer, Mail, ArrowLeft, Calendar, CreditCard, Package } from "lucide-react";
-import { useNavigate, useLocation } from "react-router-dom";
+import {
+  CheckCircle,
+  Download,
+  Printer,
+  Mail,
+  ArrowLeft,
+  CreditCard,
+  Package,
+} from "lucide-react";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
 export default function Invoice() {
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const invoiceData = location.state?.invoiceData || {
-    invoiceNumber: `INV${Date.now()}`,
-    orderId: `ORD${Date.now()}`,
-    paymentMethod: "Credit Card",
-    total: 4730,
-    subtotal: 4300,
-    vat: 430,
-    items: [],
-    date: new Date().toLocaleDateString('vi-VN'),
-    status: 'paid'
-  };
+  const { invoiceId } = useParams();
+  const [invoiceData, setInvoiceData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
+  // 🟩 Gọi API lấy thông tin hóa đơn
   useEffect(() => {
-    // Show success message when first loaded
-    if (location.state) {
-      toast.success("Đơn hàng đã được thanh toán thành công!");
-    }
-  }, [location.state]);
+    const fetchInvoice = async () => {
+      try {
+        const res = await fetch(`/api/Dashboard/order-detail/${invoiceId}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
 
+        if (!res.ok) {
+          throw new Error(`Lỗi ${res.status}: Không thể tải hóa đơn`);
+        }
+
+        const data = await res.json();
+        setInvoiceData(data);
+        toast.success("Tải thông tin hóa đơn thành công!");
+      } catch (err) {
+        console.error("❌ Lỗi khi tải hóa đơn:", err);
+        toast.error("Không thể tải thông tin hóa đơn, vui lòng thử lại.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (invoiceId) fetchInvoice();
+  }, [invoiceId]);
+
+  // 🟨 Các handler cho nút hành động
   const handlePrint = () => {
     window.print();
     toast.success("Đang chuẩn bị in hóa đơn...");
@@ -37,16 +64,24 @@ export default function Invoice() {
 
   const handleDownload = () => {
     toast.success("Đang tải xuống hóa đơn...");
-    // In real app, this would generate a PDF
   };
 
   const handleEmailInvoice = () => {
     toast.success("Hóa đơn đã được gửi đến email của bạn!");
   };
 
+  // 🟦 Giao diện khi đang tải
+  if (loading) return <p className="text-center mt-10">Đang tải dữ liệu...</p>;
+  if (!invoiceData)
+    return (
+      <p className="text-center mt-10 text-red-500">
+        Không tìm thấy thông tin hóa đơn.
+      </p>
+    );
+
   return (
     <div className="space-y-6 print:space-y-4">
-      {/* Header - Hidden when printing */}
+      {/* Header */}
       <div className="flex items-center justify-between print:hidden">
         <div className="flex items-center gap-4">
           <Button
@@ -57,8 +92,12 @@ export default function Invoice() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold text-foreground">Hóa đơn thanh toán</h2>
-            <p className="text-muted-foreground">Mã đơn hàng: {invoiceData.orderId}</p>
+            <h2 className="text-3xl font-bold text-foreground">
+              Hóa đơn thanh toán
+            </h2>
+            <p className="text-muted-foreground">
+              Mã hóa đơn: {invoiceData.invoiceName}
+            </p>
           </div>
         </div>
 
@@ -78,25 +117,27 @@ export default function Invoice() {
         </div>
       </div>
 
-      {/* Success Banner - Hidden when printing */}
-      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-900 print:hidden">
+      {/* Banner */}
+      <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200 print:hidden">
         <CardContent className="pt-6">
           <div className="flex items-center gap-4">
             <div className="bg-green-600 rounded-full p-3">
               <CheckCircle className="h-6 w-6 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-green-900 dark:text-green-100">Thanh toán thành công!</h3>
-              <p className="text-sm text-green-700 dark:text-green-300">
-                Đơn hàng của bạn đã được xử lý. Bạn có thể tải dữ liệu ngay bây giờ.
+              <h3 className="text-lg font-bold text-green-900">
+                Thanh toán thành công!
+              </h3>
+              <p className="text-sm text-green-700">
+                Đơn hàng của bạn đã được xử lý thành công.
               </p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Invoice Content */}
-      <Card className="shadow-card print:shadow-none">
+      {/* Nội dung hóa đơn */}
+      <Card>
         <CardHeader className="space-y-4">
           <div className="flex justify-between items-start">
             <div>
@@ -104,22 +145,21 @@ export default function Invoice() {
               <CardDescription>EV Data Marketplace</CardDescription>
             </div>
             <Badge className="bg-green-600 text-white">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Đã thanh toán
+              <CheckCircle className="h-3 w-3 mr-1" /> Đã thanh toán
             </Badge>
           </div>
 
           <Separator />
 
+          {/* Thông tin khách hàng */}
           <div className="grid grid-cols-2 gap-8 text-sm">
             <div>
               <p className="font-bold mb-2">THÔNG TIN KHÁCH HÀNG</p>
               <div className="space-y-1 text-muted-foreground">
-                <p>Công ty: EV Solutions Ltd.</p>
-                <p>Địa chỉ: 123 Đường ABC, Quận 1</p>
-                <p>TP. Hồ Chí Minh, Việt Nam</p>
-                <p>Email: customer@example.com</p>
-                <p>Điện thoại: +84 901 234 567</p>
+                <p>Tên: {invoiceData.userName}</p>
+                <p>Email: {invoiceData.userEmail}</p>
+                <p>Số điện thoại: {invoiceData.phoneNumber}</p>
+                <p>Tổ chức: {invoiceData.organization}</p>
               </div>
             </div>
 
@@ -128,20 +168,23 @@ export default function Invoice() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Mã hóa đơn:</span>
-                  <span className="font-medium">{invoiceData.orderId}</span>
+                  <span className="font-medium">{invoiceData.invoiceName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Ngày:</span>
-                  <span className="font-medium">{invoiceData.date}</span>
+                  <span className="text-muted-foreground">Ngày lập:</span>
+                  <span className="font-medium">{invoiceData.issueDay}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phương thức:</span>
-                  <span className="font-medium">{invoiceData.paymentMethod}</span>
+                  <span className="font-medium">{invoiceData.methodName}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Trạng thái:</span>
-                  <Badge variant="outline" className="text-green-600 border-green-600">
-                    Thành công
+                  <Badge
+                    variant="outline"
+                    className="text-green-600 border-green-600"
+                  >
+                    {invoiceData.status}
                   </Badge>
                 </div>
               </div>
@@ -150,11 +193,10 @@ export default function Invoice() {
         </CardHeader>
 
         <CardContent className="space-y-6">
-          {/* Items Table */}
+          {/* Chi tiết đơn hàng */}
           <div>
             <h3 className="font-bold mb-4 flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              CHI TIẾT ĐƠN HÀNG
+              <Package className="h-4 w-4" /> CHI TIẾT ĐƠN HÀNG
             </h3>
             <div className="border rounded-lg overflow-hidden">
               <table className="w-full text-sm">
@@ -167,31 +209,16 @@ export default function Invoice() {
                   </tr>
                 </thead>
                 <tbody>
-                  {invoiceData.items?.length > 0 ? (
-                    invoiceData.items.map((item: any, index: number) => (
-                      <tr key={index} className="border-t">
-                        <td className="p-3">
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-xs text-muted-foreground">Dataset ID: {item.id}</p>
-                        </td>
-                        <td className="text-center p-3">{item.quantity}</td>
-                        <td className="text-right p-3">${item.price}</td>
-                        <td className="text-right p-3 font-medium">
-                          ${(item.price * item.quantity).toLocaleString()}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr className="border-t">
-                      <td className="p-3">
-                        <p className="font-medium">Battery Performance Dataset Q4 2024</p>
-                        <p className="text-xs text-muted-foreground">Dataset ID: DS-001</p>
-                      </td>
-                      <td className="text-center p-3">1</td>
-                      <td className="text-right p-3">$2,500</td>
-                      <td className="text-right p-3 font-medium">$2,500</td>
-                    </tr>
-                  )}
+                  <tr className="border-t">
+                    <td className="p-3">{invoiceData.packageName}</td>
+                    <td className="text-center p-3">{invoiceData.quantity}</td>
+                    <td className="text-right p-3">
+                      {invoiceData.packagePrice.toLocaleString()}₫
+                    </td>
+                    <td className="text-right p-3 font-medium">
+                      {invoiceData.totalPrice.toLocaleString()}₫
+                    </td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -199,28 +226,31 @@ export default function Invoice() {
 
           <Separator />
 
-          {/* Totals */}
+          {/* Tổng cộng */}
           <div className="space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Tạm tính:</span>
               <span className="font-medium">
-                ${invoiceData.subtotal?.toLocaleString() || '4,300'}
+                {invoiceData.totalPrice.toLocaleString()}₫
               </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">VAT (10%):</span>
               <span className="font-medium">
-                ${invoiceData.vat?.toLocaleString() || '430'}
+                {(0).toLocaleString()}
+                ₫
               </span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>TỔNG CỘNG:</span>
-              <span className="text-success text-2xl">${invoiceData.total?.toLocaleString() || '0'}</span>
+              <span className="text-success text-2xl">
+                {invoiceData.sumPrice.toLocaleString()}₫
+              </span>
             </div>
           </div>
 
-          {/* Payment Info */}
+          {/* Thông tin thanh toán */}
           <Card className="bg-muted/50">
             <CardContent className="pt-4">
               <div className="flex items-start gap-3">
@@ -228,22 +258,17 @@ export default function Invoice() {
                 <div className="flex-1 text-sm">
                   <p className="font-medium mb-1">Thông tin thanh toán:</p>
                   <p className="text-muted-foreground">
-                    Đã thanh toán qua {invoiceData.paymentMethod} vào ngày {invoiceData.date}
+                    Đã thanh toán qua {invoiceData.methodName} vào ngày{" "}
+                    {invoiceData.issueDay}
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-
-          {/* Footer Note */}
-          <div className="text-center text-xs text-muted-foreground pt-4 border-t print:border-t-2">
-            <p className="mb-1">Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi!</p>
-            <p>Mọi thắc mắc vui lòng liên hệ: support@evdatamarket.com | Hotline: 1900-xxxx</p>
-          </div>
         </CardContent>
       </Card>
 
-      {/* Action Buttons - Hidden when printing */}
+      {/* Footer */}
       <div className="flex gap-4 print:hidden">
         <Button
           onClick={() => navigate("/consumer/purchases")}
@@ -253,7 +278,7 @@ export default function Invoice() {
           Xem đơn hàng của tôi
         </Button>
         <Button
-          onClick={() => navigate("/consumer/marketplace")}
+          onClick={() => navigate("/market")}
           className="flex-1 bg-gradient-primary"
         >
           Tiếp tục mua sắm
