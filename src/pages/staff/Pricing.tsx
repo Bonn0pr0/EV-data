@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,21 +11,56 @@ import { DollarSign, Save, TrendingUp } from "lucide-react";
 import { StatCard } from "@/components/Statcard";
 
 export default function Pricing() {
+  const [packages, setPackages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<string>("");
+
+  const userId = sessionStorage.getItem("userId");
+
+  // 🔹 Dữ liệu mẫu cho bảng bên dưới
   const mockPricing = [
-    { id: 1, dataset: "Dữ liệu pin Tesla Model 3", model: "Per Download", price: "35,000₫", usage: "Commercial", active: true },
-    { id: 2, dataset: "Hành trình VinFast VF8", model: "Subscription", price: "500,000₫/tháng", usage: "Research", active: false },
-    { id: 3, dataset: "Dữ liệu sạc nhanh", model: "Per GB", price: "15,000₫/GB", usage: "Both", active: true },
+    { id: 1, dataset: "Dữ liệu pin Tesla Model 3", model: "Per Download", price: "35,000₫", active: true },
+    { id: 2, dataset: "Hành trình VinFast VF8", model: "Subscription", price: "500,000₫/tháng", active: false },
+    { id: 3, dataset: "Dữ liệu sạc nhanh", model: "Per GB", price: "15,000₫/GB", active: true },
   ];
+
+  // 🔹 Gọi API để lấy dữ liệu gói
+  useEffect(() => {
+    const fetchPackages = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/DataPackage/user", {
+          headers: {
+            accept: "*/*",
+          },
+        });
+
+        if (!res.ok) throw new Error("Lỗi khi lấy dữ liệu");
+        const data = await res.json();
+        setPackages(data);
+      } catch (err) {
+        console.error("Fetch error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, []);
 
   return (
     <div className="space-y-6">
+      {/* ----- Tiêu đề ----- */}
       <div>
         <h1 className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           Chính sách Giá & Chia sẻ
         </h1>
-        <p className="text-muted-foreground mt-1">Thiết lập giá và quyền sử dụng cho dữ liệu của bạn</p>
+        <p className="text-muted-foreground mt-1">
+          Thiết lập giá và quyền sử dụng cho dữ liệu của bạn
+        </p>
       </div>
 
+      {/* ----- Thống kê ----- */}
       <div className="grid gap-6 md:grid-cols-3">
         <StatCard
           title="Giá trung bình"
@@ -33,18 +69,11 @@ export default function Pricing() {
           change="+12% tăng so với tháng trước"
           changeType="positive"
         />
-        <StatCard
-          title="Mô hình giá"
-          value="3"
-          icon={TrendingUp}
-        />
-        <StatCard
-          title="Doanh thu dự kiến"
-          value="2.5M₫"
-          icon={DollarSign}
-        />
+        <StatCard title="Bộ dữ liệu" value="3" icon={TrendingUp} />
+        <StatCard title="Doanh thu dự kiến" value="2.5M₫" icon={DollarSign} />
       </div>
 
+      {/* ----- Form tạo chính sách mới ----- */}
       <Card>
         <CardHeader>
           <CardTitle>Thiết lập chính sách giá mới</CardTitle>
@@ -53,18 +82,27 @@ export default function Pricing() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="dataset">Chọn bộ dữ liệu</Label>
-            <Select>
+            <Select onValueChange={setSelectedPackage}>
               <SelectTrigger id="dataset">
-                <SelectValue placeholder="Chọn dữ liệu" />
+                <SelectValue placeholder={loading ? "Đang tải..." : "Chọn dữ liệu"} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="battery">Dữ liệu pin Tesla Model 3</SelectItem>
-                <SelectItem value="trip">Hành trình VinFast VF8</SelectItem>
-                <SelectItem value="charging">Dữ liệu sạc nhanh</SelectItem>
+                {packages.length > 0 ? (
+                  packages.map((pkg) => (
+                    <SelectItem key={pkg.princingPlanId} value={pkg.packageName}>
+                      {pkg.packageName}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>
+                    {loading ? "Đang tải..." : "Không có dữ liệu"}
+                  </SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
 
+          {/* ----- Các input giá và mô hình ----- */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="model">Mô hình định giá</Label>
@@ -81,40 +119,12 @@ export default function Pricing() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price">Giá (VNĐ)</Label>
-              <Input id="price" type="number" placeholder="35000" />
+              <Label htmlFor="price-old">Giá cũ (VNĐ)</Label>
+              <Input id="price-old" type="number" placeholder="35000" />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="usage">Quyền sử dụng</Label>
-            <Select>
-              <SelectTrigger id="usage">
-                <SelectValue placeholder="Chọn quyền sử dụng" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="research">Chỉ nghiên cứu</SelectItem>
-                <SelectItem value="commercial">Thương mại</SelectItem>
-                <SelectItem value="both">Cả hai</SelectItem>
-                <SelectItem value="extended">Mở rộng (Resale allowed)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-4 pt-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="bulk">Giảm giá mua số lượng lớn</Label>
-                <p className="text-sm text-muted-foreground">Áp dụng giảm giá cho đơn hàng lớn</p>
-              </div>
-              <Switch id="bulk" />
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label htmlFor="trial">Cho phép dùng thử miễn phí</Label>
-                <p className="text-sm text-muted-foreground">Cung cấp mẫu dữ liệu giới hạn</p>
-              </div>
-              <Switch id="trial" />
+            <div className="space-y-2">
+              <Label htmlFor="price-new">Giá mới (VNĐ)</Label>
+              <Input id="price-new" type="number" placeholder="35000" />
             </div>
           </div>
 
@@ -122,9 +132,17 @@ export default function Pricing() {
             <Save className="h-4 w-4 mr-2" />
             Lưu chính sách
           </Button>
+
+          {/* Hiển thị gói đã chọn */}
+          {selectedPackage && (
+            <p className="text-sm text-muted-foreground">
+              Gói được chọn: <strong>{selectedPackage}</strong>
+            </p>
+          )}
         </CardContent>
       </Card>
 
+      {/* ----- Bảng chính sách hiện tại ----- */}
       <Card>
         <CardHeader>
           <CardTitle>Chính sách giá hiện tại</CardTitle>
@@ -137,7 +155,6 @@ export default function Pricing() {
                 <TableHead>Bộ dữ liệu</TableHead>
                 <TableHead>Mô hình</TableHead>
                 <TableHead>Giá</TableHead>
-                <TableHead>Quyền sử dụng</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Thao tác</TableHead>
               </TableRow>
@@ -149,15 +166,14 @@ export default function Pricing() {
                   <TableCell>{item.model}</TableCell>
                   <TableCell className="font-semibold text-success">{item.price}</TableCell>
                   <TableCell>
-                    <Badge variant="outline">{item.usage}</Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge variant={item.active ? "default" : "secondary"}>
                       {item.active ? "Kích hoạt" : "Tạm dừng"}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="sm">Chỉnh sửa</Button>
+                    <Button variant="ghost" size="sm">
+                      Chỉnh sửa
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
