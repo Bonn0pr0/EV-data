@@ -182,7 +182,7 @@ const handleDelete = async (id: number) => {
   </CardHeader>
 
   <CardContent className="space-y-4">
-    <form>
+    <form onSubmit={handleCreate} className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="packageName">Tên bộ dữ liệu</Label>
