@@ -112,10 +112,10 @@ const handleViewInvoice = (invoice: Invoice) => {
             Đã thanh toán
           </Badge>
         );
-      case "pending":
+      case "unpaid":
         return (
           <Badge className="bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20">
-            Chờ thanh toán
+            Chưa thanh toán
           </Badge>
         );
       case "cancelled":

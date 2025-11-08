@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { CreditCard, Building2, CheckCircle, ArrowLeft, Shield, Clock } from "lucide-react";
+import {
+  CreditCard,
+  Building2,
+  CheckCircle,
+  ArrowLeft,
+  Shield,
+  Clock,
+} from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import QRCode from "react-qr-code";
 
@@ -18,20 +31,29 @@ export default function PaymentVNPay() {
   const [countdown, setCountdown] = useState(300);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [cartIds, setCartIds] = useState<number[]>([]);
 
-const userId = sessionStorage.getItem("userId");
+  const userId = sessionStorage.getItem("userId");
 
-  // 🟢 Gọi API lấy dữ liệu giỏ hàng
+
   useEffect(() => {
+    if (!userId) return;
+
     axios
       .get(`/api/Cart?userId=${userId}`)
       .then((response) => {
-        setCartItems(response.data);
-        const total = response.data.reduce(
+        const data = response.data || [];
+        setCartItems(data);
+
+        // Tính tổng tiền và danh sách cartId
+        const total = data.reduce(
           (sum: number, item: any) => sum + item.totalAmout,
           0
         );
+        const ids = data.map((item: any) => item.cartId);
+
         setTotalAmount(total);
+        setCartIds(ids);
       })
       .catch((error) => {
         console.error("Lỗi khi tải giỏ hàng:", error);
@@ -49,6 +71,34 @@ const userId = sessionStorage.getItem("userId");
     }
   }, [showQR, countdown]);
 
+  // 🟠 Gửi yêu cầu tạo giao dịch
+  const createTransaction = async (method: string) => {
+    if (!userId || cartIds.length === 0) {
+      alert("Không tìm thấy giỏ hàng hoặc người dùng.");
+      return;
+    }
+
+    const payload = {
+      userId: Number(userId),
+      cartIds: cartIds,
+      amount: totalAmount,
+      paymentMethod: method,
+      orderInfo: `Thanh toán đơn hàng ngày ${new Date().toLocaleString("vi-VN")}`,
+    };
+
+    console.log("📤 Dữ liệu gửi đi:", payload);
+
+    try {
+      const response = await axios.post(`/api/Transaction/create`, payload);
+      console.log("✅ Phản hồi từ server:", response.data);
+      alert("Thanh toán thành công!");
+    } catch (error) {
+      console.error("❌ Lỗi khi tạo giao dịch:", error);
+      alert("Thanh toán thất bại. Vui lòng thử lại!");
+    }
+  };
+
+  // Xử lý thanh toán
   const handlePayment = () => {
     if (paymentType === "qr") {
       setShowQR(true);
@@ -61,15 +111,17 @@ const userId = sessionStorage.getItem("userId");
     }
 
     setIsProcessing(true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await createTransaction(paymentType);
       setIsProcessing(false);
-      alert("Thanh toán thành công!");
     }, 2000);
   };
 
-  const handleConfirmQRPayment = () => {
+  // Xác nhận thanh toán QR
+  const handleConfirmQRPayment = async () => {
     setIsProcessing(true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      await createTransaction("vnpay-qr");
       setIsProcessing(false);
       alert("Thanh toán VNPay thành công!");
     }, 2000);
@@ -81,7 +133,7 @@ const userId = sessionStorage.getItem("userId");
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // 🔹 Tạo dữ liệu QR VNPay thật (demo)
+  // 🔹 Tạo dữ liệu QR VNPay (demo)
   const vnpayQRData = JSON.stringify({
     version: "2.1.0",
     provider: "VNPay",
@@ -96,18 +148,21 @@ const userId = sessionStorage.getItem("userId");
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Tiêu đề */}
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" className="rounded-full">
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Thanh toán VNPay</h2>
+            <h2 className="text-3xl font-bold text-gray-900">
+              Thanh toán VNPay
+            </h2>
             <p className="text-gray-600">Thanh toán qua cổng VNPay</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Form thanh toán */}
+          {/* Cột trái */}
           <div className="lg:col-span-2 space-y-6">
             <Card className="shadow-lg">
               <CardHeader>
@@ -119,26 +174,39 @@ const userId = sessionStorage.getItem("userId");
                 </CardTitle>
                 <CardDescription>Chọn loại thẻ hoặc mã QR</CardDescription>
               </CardHeader>
+
               <CardContent className="space-y-4">
+                {/* Loại thanh toán */}
                 <RadioGroup value={paymentType} onValueChange={setPaymentType}>
                   <div className="flex items-center space-x-3 rounded-lg border-2 border-gray-200 p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all">
                     <RadioGroupItem value="atm" id="atm" />
                     <Label htmlFor="atm" className="flex items-center gap-3 flex-1">
                       <CreditCard className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="font-medium text-gray-900">Thẻ ATM nội địa</p>
-                        <p className="text-sm text-gray-500">Thẻ ngân hàng Việt Nam</p>
+                        <p className="font-medium text-gray-900">
+                          Thẻ ATM nội địa
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Thẻ ngân hàng Việt Nam
+                        </p>
                       </div>
                     </Label>
                   </div>
 
                   <div className="flex items-center space-x-3 rounded-lg border-2 border-gray-200 p-4 cursor-pointer hover:bg-blue-50 hover:border-blue-300 transition-all">
                     <RadioGroupItem value="international" id="international" />
-                    <Label htmlFor="international" className="flex items-center gap-3 flex-1">
+                    <Label
+                      htmlFor="international"
+                      className="flex items-center gap-3 flex-1"
+                    >
                       <CreditCard className="h-5 w-5 text-blue-600" />
                       <div>
-                        <p className="font-medium text-gray-900">Thẻ quốc tế</p>
-                        <p className="text-sm text-gray-500">Visa, Mastercard, JCB</p>
+                        <p className="font-medium text-gray-900">
+                          Thẻ quốc tế
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          Visa, Mastercard, JCB
+                        </p>
                       </div>
                     </Label>
                   </div>
@@ -149,12 +217,15 @@ const userId = sessionStorage.getItem("userId");
                       <Building2 className="h-5 w-5 text-blue-600" />
                       <div>
                         <p className="font-medium text-gray-900">Quét mã QR</p>
-                        <p className="text-sm text-gray-500">Hỗ trợ VNPay-QR</p>
+                        <p className="text-sm text-gray-500">
+                          Hỗ trợ VNPay-QR
+                        </p>
                       </div>
                     </Label>
                   </div>
                 </RadioGroup>
 
+                {/* Nhập thẻ */}
                 {(paymentType === "atm" || paymentType === "international") && (
                   <div className="space-y-4 pt-4">
                     <div className="space-y-2">
@@ -164,7 +235,6 @@ const userId = sessionStorage.getItem("userId");
                         placeholder="9704 1234 5678 9012"
                         value={cardNumber}
                         onChange={(e) => setCardNumber(e.target.value)}
-                        className="text-lg"
                       />
                     </div>
                     <div className="space-y-2">
@@ -173,23 +243,15 @@ const userId = sessionStorage.getItem("userId");
                         id="cardName"
                         placeholder="NGUYEN VAN A"
                         value={cardName}
-                        onChange={(e) => setCardName(e.target.value.toUpperCase())}
-                        className="text-lg"
+                        onChange={(e) =>
+                          setCardName(e.target.value.toUpperCase())
+                        }
                       />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="expiry">Ngày hết hạn</Label>
-                        <Input id="expiry" placeholder="MM/YY" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cvv">Mã OTP</Label>
-                        <Input id="cvv" placeholder="123456" maxLength={6} />
-                      </div>
                     </div>
                   </div>
                 )}
 
+                {/* QR hiển thị */}
                 {paymentType === "qr" && showQR && (
                   <div className="pt-4 space-y-4">
                     <Separator />
@@ -198,7 +260,9 @@ const userId = sessionStorage.getItem("userId");
                         <Clock className="h-4 w-4" />
                         <span className="text-sm">
                           Mã QR hết hạn sau:{" "}
-                          <span className="font-bold text-gray-900">{formatTime(countdown)}</span>
+                          <span className="font-bold text-gray-900">
+                            {formatTime(countdown)}
+                          </span>
                         </span>
                       </div>
 
@@ -206,22 +270,9 @@ const userId = sessionStorage.getItem("userId");
                         <QRCode value={vnpayQRData} size={256} level="H" />
                       </div>
 
-                      <div className="text-center space-y-1">
-                        <p className="text-lg font-bold text-blue-600">
-                          Số tiền: {totalAmount.toLocaleString()} VNĐ
-                        </p>
-                      </div>
-                      <div className="space-y-2 text-center w-full">
-                        <p className="text-sm font-medium text-gray-900">Hướng dẫn thanh toán:</p>
-                        <ol className="text-xs text-gray-600 space-y-1 text-left bg-white p-4 rounded-lg">
-                          <li>1. Mở ứng dụng ngân hàng hỗ trợ VNPay-QR</li>
-                          <li>2. Chọn chức năng "Quét mã QR" hoặc "VNPay-QR"</li>
-                          <li>3. Quét mã QR phía trên</li>
-                          <li>4. Kiểm tra thông tin và xác nhận thanh toán</li>
-                          <li>5. Nhập OTP và hoàn tất giao dịch</li>
-                          <li>6. Nhấn "Xác nhận thanh toán" bên dưới sau khi hoàn tất</li>
-                        </ol>
-                      </div>
+                      <p className="text-lg font-bold text-blue-600">
+                        Số tiền: {totalAmount.toLocaleString()} VNĐ
+                      </p>
 
                       <Button
                         onClick={handleConfirmQRPayment}
@@ -246,6 +297,7 @@ const userId = sessionStorage.getItem("userId");
               </CardContent>
             </Card>
 
+            {/* Nút thanh toán */}
             {paymentType !== "qr" && (
               <Button
                 onClick={handlePayment}
@@ -279,7 +331,7 @@ const userId = sessionStorage.getItem("userId");
             )}
           </div>
 
-          {/* Tóm tắt đơn hàng */}
+          {/* Cột phải - Giỏ hàng */}
           <div className="lg:col-span-1">
             <Card className="shadow-lg sticky top-6">
               <CardHeader className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white rounded-t-lg">
@@ -291,7 +343,9 @@ const userId = sessionStorage.getItem("userId");
                     {cartItems.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <div className="flex-1">
-                          <p className="font-medium text-gray-900">{item.packageName}</p>
+                          <p className="font-medium text-gray-900">
+                            {item.packageName}
+                          </p>
                           <p className="text-gray-500">x{item.quantity}</p>
                         </div>
                         <span className="font-medium text-gray-900">
@@ -308,7 +362,9 @@ const userId = sessionStorage.getItem("userId");
 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Tổng cộng</span>
-                  <span className="text-blue-600">{totalAmount.toLocaleString()} VNĐ</span>
+                  <span className="text-blue-600">
+                    {totalAmount.toLocaleString()} VNĐ
+                  </span>
                 </div>
               </CardContent>
             </Card>
