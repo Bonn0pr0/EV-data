@@ -139,10 +139,7 @@ const handleDelete = async (id: number) => {
           </h1>
           <p className="text-muted-foreground mt-1">Đăng ký và quản lý các bộ dữ liệu của bạn</p>
         </div>
-        <Button className="bg-gradient-primary hover:opacity-90">
-          <Plus className="h-4 w-4 mr-2" />
-          Thêm nguồn dữ liệu
-        </Button>
+
       </div>
 
     <div className="grid gap-6 md:grid-cols-4">
