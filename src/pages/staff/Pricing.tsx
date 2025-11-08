@@ -1,52 +1,67 @@
 import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import axios from "axios";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { DollarSign, Save, TrendingUp } from "lucide-react";
+import { DollarSign, Save, TrendingUp, Package } from "lucide-react";
 import { StatCard } from "@/components/Statcard";
 
 export default function Pricing() {
-  const [packages, setPackages] = useState<any[]>([]);
+  const [pricingReport, setPricingReport] = useState<any>(null);
+  const [pricingList, setPricingList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<string>("");
 
   const userId = sessionStorage.getItem("userId");
 
-  // 🔹 Dữ liệu mẫu cho bảng bên dưới
-  const mockPricing = [
-    { id: 1, dataset: "Dữ liệu pin Tesla Model 3", model: "Per Download", price: "35,000₫", active: true },
-    { id: 2, dataset: "Hành trình VinFast VF8", model: "Subscription", price: "500,000₫/tháng", active: false },
-    { id: 3, dataset: "Dữ liệu sạc nhanh", model: "Per GB", price: "15,000₫/GB", active: true },
-  ];
-
-  // 🔹 Gọi API để lấy dữ liệu gói
   useEffect(() => {
-    const fetchPackages = async () => {
+    if (!userId) return;
+
+    const fetchData = async () => {
       setLoading(true);
       try {
-        const res = await fetch("/api/DataPackage/user", {
-          headers: {
-            accept: "*/*",
-          },
-        });
+        const reportRes = await axios.get(
+          `/api/PricingPlan/ReportPricingStaff/${userId}`
+        );
+        setPricingReport(reportRes.data);
 
-        if (!res.ok) throw new Error("Lỗi khi lấy dữ liệu");
-        const data = await res.json();
-        setPackages(data);
-      } catch (err) {
-        console.error("Fetch error:", err);
+        const listRes = await axios.get(
+          `/api/PricingPlan/ListPricing/${userId}`
+        );
+        setPricingList(listRes.data);
+      } catch (error) {
+        console.error("Lỗi khi tải dữ liệu:", error);
+        alert("Không thể tải dữ liệu, vui lòng thử lại!");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPackages();
-  }, []);
+    fetchData();
+  }, [userId]);
 
   return (
     <div className="space-y-6">
@@ -64,15 +79,80 @@ export default function Pricing() {
       <div className="grid gap-6 md:grid-cols-3">
         <StatCard
           title="Giá trung bình"
-          value="28,000₫"
+          value={
+            pricingReport
+              ? `${pricingReport.avenragePricing.toLocaleString()}`
+              : "..."
+          }
           icon={DollarSign}
-          change="+12% tăng so với tháng trước"
+          change="Cập nhật tự động"
           changeType="positive"
         />
-        <StatCard title="Bộ dữ liệu" value="3" icon={TrendingUp} />
-        <StatCard title="Doanh thu dự kiến" value="2.5M₫" icon={DollarSign} />
+        <StatCard
+          title="Số gói dữ liệu"
+          value={pricingReport ? pricingReport.packageCount : "..."}
+          icon={Package}
+        />
+        <StatCard
+          title="Chính sách giá"
+          value={pricingReport ? pricingReport.pricingPlan : "..."}
+          icon={TrendingUp}
+        />
       </div>
 
+
+      {/* ----- Bảng chính sách hiện tại ----- */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Chính sách giá hiện tại</CardTitle>
+          <CardDescription>
+            Quản lý các chính sách giá đã thiết lập
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Tên gói</TableHead>
+                <TableHead>Mô tả</TableHead>
+                <TableHead>Giá</TableHead>
+                <TableHead>Trạng thái</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {pricingList.length > 0 ? (
+                pricingList.map((item) => (
+                  <TableRow key={item.pricingId}>
+                    <TableCell className="font-medium">
+                      {item.packageName}
+                    </TableCell>
+                    <TableCell>{item.description}</TableCell>
+                    <TableCell className="font-semibold text-success">
+                      {item.price.toLocaleString()}₫
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          item.status === "Pending" ? "secondary" : "default"
+                        }
+                      >
+                        {item.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-gray-500">
+                    {loading ? "Đang tải dữ liệu..." : "Không có dữ liệu"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      
       {/* ----- Form tạo chính sách mới ----- */}
       <Card>
         <CardHeader>
@@ -84,12 +164,14 @@ export default function Pricing() {
             <Label htmlFor="dataset">Chọn bộ dữ liệu</Label>
             <Select onValueChange={setSelectedPackage}>
               <SelectTrigger id="dataset">
-                <SelectValue placeholder={loading ? "Đang tải..." : "Chọn dữ liệu"} />
+                <SelectValue
+                  placeholder={loading ? "Đang tải..." : "Chọn dữ liệu"}
+                />
               </SelectTrigger>
               <SelectContent>
-                {packages.length > 0 ? (
-                  packages.map((pkg) => (
-                    <SelectItem key={pkg.princingPlanId} value={pkg.packageName}>
+                {pricingList.length > 0 ? (
+                  pricingList.map((pkg) => (
+                    <SelectItem key={pkg.pricingId} value={pkg.packageName}>
                       {pkg.packageName}
                     </SelectItem>
                   ))
@@ -111,19 +193,21 @@ export default function Pricing() {
                   <SelectValue placeholder="Chọn mô hình" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="download">Theo lượt tải (Per Download)</SelectItem>
-                  <SelectItem value="volume">Theo dung lượng (Per GB)</SelectItem>
-                  <SelectItem value="subscription">Thuê bao (Subscription)</SelectItem>
+                  <SelectItem value="download">
+                    Theo lượt tải (Per Download)
+                  </SelectItem>
+                  <SelectItem value="volume">
+                    Theo dung lượng (Per GB)
+                  </SelectItem>
+                  <SelectItem value="subscription">
+                    Thuê bao (Subscription)
+                  </SelectItem>
                   <SelectItem value="api">API Access</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="price-old">Giá cũ (VNĐ)</Label>
-              <Input id="price-old" type="number" placeholder="35000" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="price-new">Giá mới (VNĐ)</Label>
+              <Label htmlFor="price-new">Giá (VNĐ)</Label>
               <Input id="price-new" type="number" placeholder="35000" />
             </div>
           </div>
@@ -133,52 +217,12 @@ export default function Pricing() {
             Lưu chính sách
           </Button>
 
-          {/* Hiển thị gói đã chọn */}
+          {/* Hiển thị gói được chọn */}
           {selectedPackage && (
             <p className="text-sm text-muted-foreground">
               Gói được chọn: <strong>{selectedPackage}</strong>
             </p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* ----- Bảng chính sách hiện tại ----- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Chính sách giá hiện tại</CardTitle>
-          <CardDescription>Quản lý các chính sách giá đã thiết lập</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Bộ dữ liệu</TableHead>
-                <TableHead>Mô hình</TableHead>
-                <TableHead>Giá</TableHead>
-                <TableHead>Trạng thái</TableHead>
-                <TableHead>Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockPricing.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">{item.dataset}</TableCell>
-                  <TableCell>{item.model}</TableCell>
-                  <TableCell className="font-semibold text-success">{item.price}</TableCell>
-                  <TableCell>
-                    <Badge variant={item.active ? "default" : "secondary"}>
-                      {item.active ? "Kích hoạt" : "Tạm dừng"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      Chỉnh sửa
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
         </CardContent>
       </Card>
     </div>
