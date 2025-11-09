@@ -11,7 +11,8 @@ import { Plus, Search, Upload, FileText, Edit, Trash2 } from "lucide-react";
 import { StatCard } from "@/components/Statcard";
 import { Database, Activity, CheckCircle, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { DollarSign } from "lucide-react"; 
 
 export default function DataSources() {
 const [packageName, setPackageName] = useState("");
@@ -32,6 +33,15 @@ const [dashboardData, setDashboardData] = useState({
   approvedData: 0,
   pendingData: 0,
 });
+  const [openPrice, setOpenPrice] = useState(false);
+  const [pricePackage, setPricePackage] = useState({
+    name: "",
+    price: "",
+    currency: "VND",
+    duration: "",
+    accessType: "",
+    discount: "0",
+  });
   const userId = sessionStorage.getItem("userId");
  // detail button 
   const [selectedPackage, setSelectedPackage] = useState(null);
@@ -41,10 +51,14 @@ const [dashboardData, setDashboardData] = useState({
   const [openDelete, setOpenDelete] = useState(false);
 const [deleteId, setDeleteId] = useState<number | null>(null);
 
+// State để lưu packageId hiện tại khi mở dialog giá
+const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
+
 const handleConfirmDelete = (id: number) => {
   setDeleteId(id);
   setOpenDelete(true);
 };
+
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     const newPackage = {
@@ -110,10 +124,6 @@ useEffect(() => {
   fetchUserData();
 }, []);
 
-
-
-
-
 const handleDelete = async (id: number) => {
   if (!deleteId) return;
   try {
@@ -129,6 +139,82 @@ const handleDelete = async (id: number) => {
     console.error(error);
   }
 };
+
+  const handleOpenPriceDialog = (datasetId: number) => {
+    setCurrentPackageId(datasetId);
+    
+    // Tìm dataset được chọn để lấy tên
+    const selectedDataset = datasets.find(d => d.packageId === datasetId);
+    
+    setPricePackage({
+      name: "",
+      price: "",
+      currency: "VND",
+      duration: "",
+      accessType: "",
+      discount: "0",
+    });
+    
+    // Lưu tên package để hiển thị trong dialog
+    if (selectedDataset) {
+      setSelectedPackage(selectedDataset);
+    }
+    
+    setOpenPrice(true);
+  };
+
+  const handleSavePrice = async () => {
+    if (!currentPackageId) {
+      alert("Không xác định được gói dữ liệu!");
+      return;
+    }
+
+    // Lấy tên package từ selectedPackage
+    const packageNameValue = selectedPackage?.packageName || "";
+
+    // Tạo body request theo format của backend
+    const requestBody = {
+      planName: pricePackage.name,
+      price: Number(pricePackage.price),
+      currency: pricePackage.currency,
+      duration: Number(pricePackage.duration),
+      accessType: pricePackage.accessType,
+      packageName: packageNameValue, // Tự động lấy từ dataset đã chọn
+      discount: Number(pricePackage.discount)
+    };
+
+    try {
+      const res = await fetch("/api/PricingPlan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!res.ok) {
+        throw new Error("Không thể tạo gói giá");
+      }
+
+      const data = await res.json();
+      console.log("Kết quả:", data);
+      alert("Đã lưu giá cho gói dữ liệu thành công!");
+      setOpenPrice(false);
+      
+      // Reset form
+      setPricePackage({
+        name: "",
+        price: "",
+        currency: "VND",
+        duration: "",
+        accessType: "",
+        discount: "0",
+      });
+      setCurrentPackageId(null);
+      setSelectedPackage(null);
+    } catch (err) {
+      console.error(err);
+      alert("Lưu giá thất bại! Vui lòng thử lại.");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -324,9 +410,9 @@ const handleDelete = async (id: number) => {
               {datasets.map((dataset) => (
                 <TableRow key={dataset.packageId}>
                    <TableCell className="font-medium">{dataset.packageName}</TableCell>
-  <TableCell>{dataset.description}</TableCell>
-  <TableCell>{dataset.fileSize}</TableCell>
-  <TableCell>
+            <TableCell>{dataset.description}</TableCell>
+            <TableCell>{(dataset.fileSize / 1024 / 1024).toFixed(2)} MB</TableCell>
+            <TableCell>
     {/* Đổi hiển thị trạng thái ở đây */}
     <Badge
       variant={
@@ -351,7 +437,13 @@ const handleDelete = async (id: number) => {
                       {/* <Button variant="ghost" size="icon" onClick={() => handleViewDetail(dataset.packageId)}>
                         <FileText className="h-4 w-4" />
                       </Button> */}
-
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleOpenPriceDialog(dataset.packageId)}
+                      >
+                        <DollarSign className="h-4 w-4 text-green-600" />
+                      </Button>
                       <Button variant="ghost" size="icon">
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -468,7 +560,114 @@ const handleDelete = async (id: number) => {
     </div>
   </DialogContent>
 </Dialog>
+      {/* 💰 Dialog Thêm giá mới */}
+      <Dialog open={openPrice} onOpenChange={setOpenPrice}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Thiết lập giá cho gói dữ liệu</DialogTitle>
+            <DialogDescription>
+              {selectedPackage?.packageName || "Đang chọn gói dữ liệu..."}
+            </DialogDescription>
+          </DialogHeader>
 
+          <div className="grid gap-4">
+            <div className="space-y-2">
+              <Label>Tên gói giá</Label>
+              <Input
+                placeholder="VD: Gói cơ bản"
+                value={pricePackage.name}
+                onChange={(e) =>
+                  setPricePackage({ ...pricePackage, name: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Giá</Label>
+              <Input
+                type="number"
+                placeholder="100000"
+                value={pricePackage.price}
+                onChange={(e) =>
+                  setPricePackage({ ...pricePackage, price: e.target.value })
+                }
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Đơn vị tiền tệ</Label>
+                <Select
+                  value={pricePackage.currency}
+                  onValueChange={(value) =>
+                    setPricePackage({ ...pricePackage, currency: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn đơn vị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fgdfg">VND (₫)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Thời hạn (số)</Label>
+                <Input
+                  type="number"
+                  placeholder="VD: 1, 6, 12"
+                  value={pricePackage.duration}
+                  onChange={(e) =>
+                    setPricePackage({ ...pricePackage, duration: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Loại truy cập</Label>
+                <Select
+                  value={pricePackage.accessType}
+                  onValueChange={(value) =>
+                    setPricePackage({ ...pricePackage, accessType: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại truy cập" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fgdfg">Chỉ đọc</SelectItem>
+                    <SelectItem value="download">Tải về</SelectItem>
+                    <SelectItem value="api">Truy cập API</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Giảm giá (số)</Label>
+                <Input
+                  type="number"
+                  placeholder="VD: 0, 10, 20"
+                  value={pricePackage.discount}
+                  onChange={(e) =>
+                    setPricePackage({ ...pricePackage, discount: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setOpenPrice(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleSavePrice}>Lưu giá</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
 
     </div>
