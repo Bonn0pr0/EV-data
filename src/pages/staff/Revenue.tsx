@@ -1,23 +1,83 @@
+"use client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/Statcard";
 import { DollarSign, TrendingUp, Download, Users } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState, useEffect } from "react";
 
 export default function Revenue() {
-  const mockTransactions = [
-    { id: 1, date: "2024-01-15", buyer: "VinGroup Research", dataset: "Dữ liệu pin Tesla Model 3", downloads: 5, revenue: "175,000₫" },
-    { id: 2, date: "2024-01-14", buyer: "EV Analytics Co.", dataset: "Dữ liệu sạc nhanh", downloads: 3, revenue: "105,000₫" },
-    { id: 3, date: "2024-01-13", buyer: "Smart Mobility Lab", dataset: "Dữ liệu pin Tesla Model 3", downloads: 2, revenue: "70,000₫" },
-    { id: 4, date: "2024-01-12", buyer: "Green Transport", dataset: "Giao dịch điện năng", downloads: 4, revenue: "120,000₫" },
-  ];
+  const userId = sessionStorage.getItem("userId");
 
-  const topBuyers = [
-    { name: "VinGroup Research", purchases: 25, revenue: "2,450,000₫" },
-    { name: "EV Analytics Co.", purchases: 18, revenue: "1,890,000₫" },
-    { name: "Smart Mobility Lab", purchases: 12, revenue: "980,000₫" },
-  ];
+  // States để lưu dữ liệu từ API
+  const [revenueReport, setRevenueReport] = useState({
+    totalRevenue: 0,
+    revenueGrowth: 0,
+    downloadCount: 0,
+    downloadGrowth: 0,
+    buyerCount: 0,
+    newBuyer: 0,
+    averageRevenue: 0
+  });
+
+  const [transactions, setTransactions] = useState([]);
+  const [topBuyers, setTopBuyers] = useState([]);
+  const [dataRevenue, setDataRevenue] = useState([]);
+
+  // Fetch Revenue Report (Dashboard stats)
+  useEffect(() => {
+    const fetchRevenueReport = async () => {
+      try {
+        const res = await fetch(`/api/PricingPlan/RevenueStaff/RevenueReport/${userId}`);
+        if (!res.ok) throw new Error("Không thể lấy báo cáo doanh thu");
+        const data = await res.json();
+        setRevenueReport(data);
+      } catch (err) {
+        console.error("❌ Lỗi fetch Revenue Report:", err);
+      }
+    };
+
+    const fetchTransactions = async () => {
+      try {
+        const res = await fetch(`/api/Transaction/RevenueStaff/Now/${userId}`);
+        if (!res.ok) throw new Error("Không thể lấy lịch sử giao dịch");
+        const data = await res.json();
+        setTransactions(data);
+      } catch (err) {
+        console.error("❌ Lỗi fetch Transactions:", err);
+      }
+    };
+
+    const fetchTopBuyers = async () => {
+      try {
+        const res = await fetch(`/api/Transaction/RevenueStaff/TopBuyer/${userId}`);
+        if (!res.ok) throw new Error("Không thể lấy top người mua");
+        const data = await res.json();
+        setTopBuyers(data);
+      } catch (err) {
+        console.error("❌ Lỗi fetch Top Buyers:", err);
+      }
+    };
+
+    const fetchDataRevenue = async () => {
+      try {
+        const res = await fetch(`/api/Transaction/RevenueStaff/DataRevenue/${userId}`);
+        if (!res.ok) throw new Error("Không thể lấy doanh thu theo dữ liệu");
+        const data = await res.json();
+        setDataRevenue(data);
+      } catch (err) {
+        console.error("❌ Lỗi fetch Data Revenue:", err);
+      }
+    };
+
+    if (userId) {
+      fetchRevenueReport();
+      fetchTransactions();
+      fetchTopBuyers();
+      fetchDataRevenue();
+    }
+  }, [userId]);
 
   return (
     <div className="space-y-6">
@@ -44,28 +104,28 @@ export default function Revenue() {
       <div className="grid gap-6 md:grid-cols-4">
         <StatCard
           title="Tổng doanh thu"
-          value="5,320,000₫"
+          value={`${revenueReport.totalRevenue.toLocaleString('vi-VN')}₫`}
           icon={DollarSign}
-          change="+23% tăng so với tháng trước"
-          changeType="positive"
+          change={`${revenueReport.revenueGrowth > 0 ? '+' : ''}${revenueReport.revenueGrowth}% so với tháng trước`}
+          changeType={revenueReport.revenueGrowth >= 0 ? "positive" : "negative"}
         />
         <StatCard
           title="Lượt tải"
-          value="156"
+          value={revenueReport.downloadCount.toString()}
           icon={Download}
-          change="+18% tăng"
-          changeType="positive"
+          change={`${revenueReport.downloadGrowth > 0 ? '+' : ''}${revenueReport.downloadGrowth}% tăng`}
+          changeType={revenueReport.downloadGrowth >= 0 ? "positive" : "negative"}
         />
         <StatCard
           title="Người mua"
-          value="42"
+          value={revenueReport.buyerCount.toString()}
           icon={Users}
-          change="8 người mua mới"
+          change={`${revenueReport.newBuyer} người mua mới`}
           changeType="positive"
         />
         <StatCard
           title="Giá trị TB/giao dịch"
-          value="34,100₫"
+          value={`${revenueReport.averageRevenue.toLocaleString('vi-VN')}₫`}
           icon={TrendingUp}
         />
       </div>
@@ -88,19 +148,27 @@ export default function Revenue() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>{transaction.date}</TableCell>
-                    <TableCell className="font-medium">{transaction.buyer}</TableCell>
-                    <TableCell>{transaction.dataset}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{transaction.downloads}</Badge>
-                    </TableCell>
-                    <TableCell className="font-semibold text-success">
-                      {transaction.revenue}
+                {transactions.length > 0 ? (
+                  transactions.map((transaction) => (
+                    <TableRow key={transaction.transactionDate}>
+                      <TableCell>{new Date(transaction.transactionDate).toLocaleDateString('vi-VN')}</TableCell>
+                      <TableCell className="font-medium">{transaction.buyerName}</TableCell>
+                      <TableCell>{transaction.packageName}</TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{transaction.downloadCount}</Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-success">
+                        {transaction.revenue.toLocaleString('vi-VN')}₫
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      Chưa có giao dịch nào
                     </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
@@ -113,15 +181,21 @@ export default function Revenue() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topBuyers.map((buyer, index) => (
-                <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <p className="font-medium">{buyer.name}</p>
-                    <p className="text-sm text-muted-foreground">{buyer.purchases} giao dịch</p>
+              {topBuyers.length > 0 ? (
+                topBuyers.map((buyer, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">{buyer.buyerName}</p>
+                      <p className="text-sm text-muted-foreground">{buyer.transactionCount} giao dịch</p>
+                    </div>
+                    <p className="font-semibold text-success">
+                      {buyer.totalRevenue.toLocaleString('vi-VN')}₫
+                    </p>
                   </div>
-                  <p className="font-semibold text-success">{buyer.revenue}</p>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-center text-muted-foreground">Chưa có dữ liệu</p>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -140,31 +214,27 @@ export default function Revenue() {
                 <TableHead>Lượt tải</TableHead>
                 <TableHead>Doanh thu</TableHead>
                 <TableHead>Giá TB</TableHead>
-                <TableHead>Tỷ lệ chuyển đổi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              <TableRow>
-                <TableCell className="font-medium">Dữ liệu pin Tesla Model 3</TableCell>
-                <TableCell>68</TableCell>
-                <TableCell className="font-semibold text-success">2,380,000₫</TableCell>
-                <TableCell>35,000₫</TableCell>
-                <TableCell><Badge>45%</Badge></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Dữ liệu sạc nhanh</TableCell>
-                <TableCell>52</TableCell>
-                <TableCell className="font-semibold text-success">1,820,000₫</TableCell>
-                <TableCell>35,000₫</TableCell>
-                <TableCell><Badge>38%</Badge></TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Giao dịch điện năng</TableCell>
-                <TableCell>36</TableCell>
-                <TableCell className="font-semibold text-success">1,120,000₫</TableCell>
-                <TableCell>31,100₫</TableCell>
-                <TableCell><Badge>28%</Badge></TableCell>
-              </TableRow>
+              {dataRevenue.length > 0 ? (
+                dataRevenue.map((item, index) => (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{item.packageName}</TableCell>
+                    <TableCell>{item.totalDownloads}</TableCell>
+                    <TableCell className="font-semibold text-success">
+                      {item.totalRevenue.toLocaleString('vi-VN')}₫
+                    </TableCell>
+                    <TableCell>{item.averagePrice.toLocaleString('vi-VN')}₫</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    Chưa có dữ liệu doanh thu
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
