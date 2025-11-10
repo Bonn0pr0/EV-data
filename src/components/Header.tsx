@@ -50,7 +50,7 @@ const Header = () => {
             <Link to="/api" className="text-foreground hover:text-primary transition-colors">
               API
             </Link>
-            <a href="#" className="text-foreground hover:text-primary transition-colors">
+            <a href="/docs" className="text-foreground hover:text-primary transition-colors">
               Tài Liệu
             </a>
           </nav>

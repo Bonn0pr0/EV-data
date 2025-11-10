@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,21 +17,17 @@ export default function PaymentMomo() {
   const [countdown, setCountdown] = useState(300);
   const [cartItems, setCartItems] = useState<any[]>([]);
   const [totalAmount, setTotalAmount] = useState(0);
+  const [momoLink, setMomoLink] = useState("");
 
-const userId = sessionStorage.getItem("userId");
+  const userId = sessionStorage.getItem("userId");
 
-  // 🔹 Gọi API lấy giỏ hàng
+  // 🔹 Lấy giỏ hàng
   useEffect(() => {
     axios
       .get(`/api/Cart?userId=${userId}`)
       .then((response) => {
         setCartItems(response.data);
-
-        // Tính tổng tiền
-        const total = response.data.reduce(
-          (sum: number, item: any) => sum + item.totalAmout,
-          0
-        );
+        const total = response.data.reduce((sum: number, item: any) => sum + item.totalAmout, 0);
         setTotalAmount(total);
       })
       .catch((error) => {
@@ -38,12 +36,10 @@ const userId = sessionStorage.getItem("userId");
       });
   }, [userId]);
 
-  // ⏱️ Countdown timer
+  // ⏱ Countdown timer
   useEffect(() => {
     if (showQR && countdown > 0) {
-      const timer = setInterval(() => {
-        setCountdown((prev) => prev - 1);
-      }, 1000);
+      const timer = setInterval(() => setCountdown(prev => prev - 1), 1000);
       return () => clearInterval(timer);
     }
   }, [showQR, countdown]);
@@ -53,7 +49,17 @@ const userId = sessionStorage.getItem("userId");
       alert("Vui lòng nhập số điện thoại hợp lệ!");
       return;
     }
+    if (totalAmount <= 0) {
+      alert("Giỏ hàng trống hoặc tổng tiền không hợp lệ!");
+      return;
+    }
+
+    const link = `https://momo.vn/map?receiver=${phoneNumber}&amount=${totalAmount}&note=${encodeURIComponent(
+      "Thanh toán đơn hàng"
+    )}`;
+    setMomoLink(link);
     setShowQR(true);
+    setCountdown(300);
   };
 
   const handleConfirmPayment = () => {
@@ -70,16 +76,16 @@ const userId = sessionStorage.getItem("userId");
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // 🔗 Tạo deep link MoMo
-  const momoDeepLink = `momo://app?action=payWithApp&amount=${totalAmount}&phone=${phoneNumber}&description=${encodeURIComponent(
-    "Thanh toán đơn hàng #" + Date.now()
-  )}`;
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="rounded-full"
+            onClick={() => window.history.back()} // <-- nút quay lại trang trước
+          >
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -124,7 +130,7 @@ const userId = sessionStorage.getItem("userId");
                   </Button>
                 )}
 
-                {showQR && (
+                {showQR && momoLink && (
                   <div className="space-y-4">
                     <Separator />
 
@@ -133,15 +139,12 @@ const userId = sessionStorage.getItem("userId");
                         <Clock className="h-4 w-4" />
                         <span className="text-sm">
                           Mã QR hết hạn sau:{" "}
-                          <span className="font-bold text-gray-900">
-                            {formatTime(countdown)}
-                          </span>
+                          <span className="font-bold text-gray-900">{formatTime(countdown)}</span>
                         </span>
                       </div>
 
-                      {/* QR Code */}
                       <div className="p-4 bg-white border-4 border-pink-200 rounded-lg shadow-md">
-                        <QRCode value={momoDeepLink} size={256} level="H" />
+                        <QRCode value={momoLink} size={256} level="H" />
                       </div>
 
                       <div className="text-center space-y-1">
@@ -152,7 +155,8 @@ const userId = sessionStorage.getItem("userId");
                           Số tiền: {totalAmount.toLocaleString()} VNĐ
                         </p>
                       </div>
-                                            <div className="space-y-2 text-center w-full">
+
+                      <div className="space-y-2 text-center w-full">
                         <p className="text-sm font-medium text-gray-900">Hướng dẫn thanh toán:</p>
                         <ol className="text-xs text-gray-600 space-y-1 text-left bg-white p-4 rounded-lg">
                           <li>1. Mở ứng dụng MoMo trên điện thoại</li>

@@ -7,6 +7,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import Index from "@/pages/Index";
 import Market from "@/pages/Market";
 import Analytics from "@/pages/Analytics";
+import Docs from "@/pages/Docs";
 import API from "@/pages/API";
 import User from "@/components/User";
 import NotFound from "@/pages/NotFound";
@@ -46,7 +47,7 @@ function App() {
             <Route path="/market" element={<Market />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/api" element={<API />} />
-
+            <Route path="/docs" element={<Docs />} />
             {/* Trang User (bảo vệ đăng nhập) */}
             <Route
               path="/user"
