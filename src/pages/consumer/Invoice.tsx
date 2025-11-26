@@ -27,7 +27,7 @@ export default function Invoice() {
   const [invoiceData, setInvoiceData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🟩 Gọi API lấy thông tin hóa đơn
+  //  Gọi API lấy thông tin hóa đơn
   useEffect(() => {
     const fetchInvoice = async () => {
       try {

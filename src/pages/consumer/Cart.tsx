@@ -15,8 +15,8 @@ interface CartItem {
   providerName: string;
   type: string;
   fileFormat: string;
-  totalAmout: number; // tổng tiền của item hiện tại
-  totalPrice: number; // tổng tiền gốc (để tính lại khi thay đổi số lượng)
+  totalAmout: number;
+  totalPrice: number;
 }
 
 export default function Cart() {
@@ -50,29 +50,68 @@ export default function Cart() {
     fetchCart();
   }, [userId]);
 
-  // 🔹 Cập nhật số lượng và tính lại totalAmout chính xác
-  const updateQuantity = (cartId: number, change: number) => {
-  setCartItems(items =>
-    items.map(item => {
-      if (item.cartId === cartId) {
-        const newQuantity = Math.max(1, item.quantity + change); // số lượng tối thiểu là 1
-        const unitPrice = item.totalAmout / item.quantity; // giá 1 sản phẩm
-        return {
-          ...item,
-          quantity: newQuantity,
-          totalAmout: unitPrice * newQuantity, // tính lại tổng tiền
-        };
-      }
-      return item;
-    })
-  );
-};
 
+  // ✅ Update Quantity + API call
+  const updateQuantity = async (cartId: number, change: number) => {
+    // Update UI first (optimistic update)
+    setCartItems(items =>
+      items.map(item => {
+        if (item.cartId === cartId) {
+          const newQuantity = Math.max(1, item.quantity + change);
+          const unitPrice = item.totalAmout / item.quantity;
 
-  const removeItem = (cartId: number) => {
-    setCartItems(items => items.filter(item => item.cartId !== cartId));
-    toast.success("Đã xóa khỏi giỏ hàng");
+          return {
+            ...item,
+            quantity: newQuantity,
+            totalAmout: unitPrice * newQuantity,
+          };
+        }
+        return item;
+      })
+    );
+
+    try {
+      const current = cartItems.find(x => x.cartId === cartId);
+      if (!current) return;
+
+      const newQuantity = Math.max(1, current.quantity + change);
+
+      const res = await fetch(`/api/Cart/update-quantity`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cartId: cartId,
+          quantity: newQuantity
+        }),
+      });
+
+      if (!res.ok) throw new Error("API update quantity thất bại");
+
+    } catch (error) {
+      toast.error("Không thể cập nhật số lượng");
+      console.error(error);
+    }
   };
+
+
+  // 🗑 Delete Item + API call
+  const removeItem = async (cartId: number) => {
+    setCartItems(items => items.filter(item => item.cartId !== cartId));
+
+    try {
+      const res = await fetch(`/api/Cart/delete/${cartId}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) throw new Error("API delete thất bại");
+
+      toast.success("Đã xóa khỏi giỏ hàng");
+    } catch (error) {
+      toast.error("Không thể xóa item");
+      console.error(error);
+    }
+  };
+
 
   if (loading) {
     return <p className="text-center py-10">Đang tải giỏ hàng...</p>;
@@ -92,7 +131,7 @@ export default function Cart() {
   }
 
   const subtotal = cartItems.reduce((sum, item) => sum + item.totalAmout, 0);
-  const vat = 0; 
+  const vat = 0;
   const total = subtotal + vat;
 
   return (
@@ -134,7 +173,9 @@ export default function Cart() {
                         >
                           <Minus className="h-4 w-4" />
                         </Button>
+
                         <span className="font-medium w-8 text-center">{item.quantity}</span>
+
                         <Button
                           variant="outline"
                           size="icon"
@@ -147,6 +188,7 @@ export default function Cart() {
 
                       <div className="flex items-center gap-4">
                         <span className="text-xl font-bold">{item.totalAmout.toLocaleString('vi-VN')} VND</span>
+
                         <Button
                           variant="ghost"
                           size="icon"
@@ -155,9 +197,11 @@ export default function Cart() {
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
+
                     </div>
                   </div>
                 </div>
+
               </CardContent>
             </Card>
           ))}
@@ -176,11 +220,14 @@ export default function Cart() {
                   <span className="text-muted-foreground">Tạm tính</span>
                   <span className="font-medium">{subtotal.toLocaleString('vi-VN')} VND</span>
                 </div>
+
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">VAT (0%)</span>
                   <span className="font-medium">{vat} VND</span>
                 </div>
+
                 <Separator />
+
                 <div className="flex justify-between text-lg font-bold">
                   <span>Tổng cộng</span>
                   <span className="text-success">{total.toLocaleString('vi-VN')} VND</span>

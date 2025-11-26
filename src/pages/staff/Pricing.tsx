@@ -11,6 +11,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   Table,
   TableBody,
   TableCell,
@@ -28,6 +35,7 @@ export default function Pricing() {
   const [loading, setLoading] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState<any>(null);
   const [newPrice, setNewPrice] = useState<string>("");
+  const [openEdit, setOpenEdit] = useState(false);
 
   const userId = sessionStorage.getItem("userId");
 
@@ -61,6 +69,7 @@ export default function Pricing() {
   const handleEdit = (item: any) => {
     setSelectedPackage(item);
     setNewPrice(item.price); // giá mặc định
+    setOpenEdit(true);
   };
 
   // Lưu giá mới
@@ -85,6 +94,7 @@ export default function Pricing() {
       alert("Cập nhật giá thành công!");
       setSelectedPackage(null);
       setNewPrice("");
+      setOpenEdit(false);
 
       // Cập nhật lại danh sách
       const listRes = await axios.get(`/api/PricingPlan/ListPricing/${userId}`);
@@ -194,68 +204,44 @@ export default function Pricing() {
         </CardContent>
       </Card>
 
-      {/* ----- Form chỉnh sửa hoặc tạo chính sách ----- */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {selectedPackage
-              ? "Cập nhật giá cho gói dữ liệu"
-              : "Thiết lập chính sách giá mới"}
-          </CardTitle>
-          <CardDescription>
-            {selectedPackage
-              ? "Điều chỉnh giá của gói hiện tại"
-              : "Định giá cho bộ dữ liệu của bạn"}
-          </CardDescription>
-        </CardHeader>
+      
 
-        <CardContent className="space-y-4">
-          {selectedPackage ? (
-            <>
-              {/* --- 2 ô đầu nằm cùng hàng --- */}
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Tên gói</Label>
-                  <Input value={selectedPackage.packageName} disabled />
-                </div>
-                <div className="space-y-2">
-                  <Label>Mô tả</Label>
-                  <Input value={selectedPackage.description} disabled />
-                </div>
-              </div>
+      {/* Edit dialog modal */}
+      <Dialog open={openEdit} onOpenChange={(val) => { setOpenEdit(val); if (!val) setSelectedPackage(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cập nhật giá cho gói dữ liệu</DialogTitle>
+            <DialogDescription>Điều chỉnh giá của gói hiện tại</DialogDescription>
+          </DialogHeader>
 
-              {/* --- Giá hiện tại --- */}
-              <div className="space-y-2">
-                <Label>Giá hiện tại (VNĐ)</Label>
-                <Input value={selectedPackage.price.toLocaleString()} disabled />
-              </div>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+            <div className="space-y-2">
+              <Label>Tên gói</Label>
+              <Input value={selectedPackage?.packageName ?? ""} disabled />
+            </div>
 
-              {/* --- Giá mới --- */}
-              <div className="space-y-2">
-                <Label>Giá mới (VNĐ)</Label>
-                <Input
-                  type="number"
-                  placeholder="Nhập giá mới..."
-                  value={newPrice}
-                  onChange={(e) => setNewPrice(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label>Mô tả</Label>
+              <Input value={selectedPackage?.description ?? ""} disabled />
+            </div>
 
-              <Button
-                onClick={handleSave}
-                className="w-full bg-gradient-primary hover:opacity-90"
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Lưu thay đổi
-              </Button>
-            </>
-          ) : (
-            <p className="text-muted-foreground">
-              Chọn “Chỉnh sửa” ở bảng trên để cập nhật giá cho một gói cụ thể.
-            </p>
-          )}
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Label>Giá hiện tại (VNĐ)</Label>
+              <Input value={selectedPackage?.price ? selectedPackage.price.toLocaleString() : ""} disabled />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Giá mới (VNĐ)</Label>
+              <Input type="number" placeholder="Nhập giá mới..." value={newPrice} onChange={(e) => setNewPrice(e.target.value)} />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <Button variant="outline" type="button" onClick={() => { setOpenEdit(false); setSelectedPackage(null); }}>Huỷ</Button>
+              <Button type="submit" className="bg-gradient-primary"> <Save className="h-4 w-4 mr-2"/> Lưu</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
