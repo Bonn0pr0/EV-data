@@ -45,6 +45,7 @@ export default function MyPurchases() {
       null
     );
   };
+  const API_BASE = import.meta.env.VITE_API_BASE || "";
 
   
   const handleDownload = async (p: any) => {
@@ -62,12 +63,11 @@ export default function MyPurchases() {
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // 
-      const url = `/api/download/${id}/download`;
+      const requestUrl = `${API_BASE}/api/Download/${id}/download`;
 
-      const res = await fetch(url, {
+      const res = await fetch(requestUrl, {
         method: "GET",
-        headers,
+        headers: { ...headers, accept: "*/*" },
       });
 
       if (!res.ok) {

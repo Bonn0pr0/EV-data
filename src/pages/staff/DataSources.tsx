@@ -89,7 +89,7 @@ export default function DataSources() {
 
   // Detail dialog
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
-  const [openDetail, setOpenDetail] = useState(false);
+const [openDetail, setOpenDetail] = useState(false);
 const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
 
   // Delete dialog
@@ -176,7 +176,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
           alert("Không thể upload file. Vui lòng kiểm tra console (F12) để xem chi tiết lỗi.");
           setUploadProgress(0);
           return;
-        }
+}
 
         if (res.error) {
           console.error("[DataSources] Upload failed:", res.error);
@@ -288,7 +288,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
   const handleOpenUpload = (pkg: any) => {
     setSelectedPackage(pkg);
     setCurrentPackageId(pkg.packageId);
-    setUploadFileForPackage(null);
+setUploadFileForPackage(null);
     setUploadFileProgress(0);
     setUploadFileError(null);
     setOpenUpload(true);
@@ -392,7 +392,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
       });
       setCurrentPackageId(null);
       setSelectedPackage(null);
-    } catch (err) {
+} catch (err) {
       console.error(err);
       alert("Lưu giá thất bại! Vui lòng thử lại.");
     }
@@ -486,7 +486,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
               <div className="form-row">
                 <label htmlFor="packageName">Tên bộ dữ liệu</label>
                 <Input
-                  id="packageName"
+id="packageName"
                   value={packageName}
                   onChange={(e) => setPackageName(e.target.value)}
                   required
@@ -566,7 +566,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                 <Input
                   id="fileFormat"
                   value={fileFormat}
-                  onChange={(e) => setFileFormat(e.target.value)}
+onChange={(e) => setFileFormat(e.target.value)}
                 />
               </div>
 
@@ -642,7 +642,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                   id="accessType"
                   value={pricePackage.accessType}
                   onChange={(e) => setPricePackage({ ...pricePackage, accessType: e.target.value })}
-                  placeholder="VD: Mua một lần, Đăng ký"
+placeholder="VD: Mua một lần, Đăng ký"
                   required
                 />
               </div>
@@ -704,7 +704,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
 
               {uploadFileProgress > 0 && uploadFileProgress < 100 && (
                 <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
-                  <div className="h-full bg-green-500" style={{ width: `${uploadFileProgress}%` }} />
+<div className="h-full bg-green-500" style={{ width: `${uploadFileProgress}%` }} />
                 </div>
               )}
 
@@ -791,7 +791,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
             <TableBody>
               {filteredDatasets.map((dataset: any) => {
                 const subName =
-                  dataset.subCategoryName ??
+dataset.subCategoryName ??
                   dataset.subcategoryName ??
                   dataset.subcategory?.subcategoryName ??
                   dataset.subcategory?.subCategoryName ??
@@ -868,7 +868,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleConfirmDelete(dataset.packageId)}
+onClick={() => handleConfirmDelete(dataset.packageId)}
                         >
                           <Trash2 className="h-4 w-4 text-red-500" />
                         </Button>
@@ -949,7 +949,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                         selectedPackage.status === "Active"
                           ? "bg-blue-100 text-blue-700 border-blue-300"
                           : ""
-                      }
+}
                     `}
                     >
                       {selectedPackage.status === "Active"
@@ -1029,7 +1029,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                 Huỷ
               </Button>
               <Button
-                variant="destructive"
+variant="destructive"
                 onClick={() => handleDelete(deleteId)}
                 disabled={!deleteId}
               >

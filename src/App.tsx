@@ -23,6 +23,7 @@ import AdminAnalytics from "@/pages/admin/Analytics"; // tránh trùng tên vớ
 // Trang dành cho staff
 import DataSources from './pages/staff/DataSources';
 import Pricing from './pages/staff/Pricing';
+import Uploads from './pages/staff/Uploads';
 import Revenue from './pages/staff/Revenue';
 import StaffLayout from './pages/staff/StaffLayout';
 
@@ -70,6 +71,7 @@ function App() {
               <Route index element={<DataSources />} />
               <Route path="data-sources" element={<DataSources />} />
               <Route path="pricing" element={<Pricing />} />
+              <Route path="uploads" element={<Uploads />} />
               <Route path="revenue" element={<Revenue />} />
             </Route>
             
