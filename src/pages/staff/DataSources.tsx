@@ -27,7 +27,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Search, FileText, Edit, Trash2, Upload, X } from "lucide-react";
+import { Plus, Search, FileText, Edit, Trash2, Upload, X, DollarSign } from "lucide-react";
 import { StatCard } from "@/components/Statcard";
 import { Database, Activity, CheckCircle, Clock } from "lucide-react";
 import {
@@ -91,25 +91,15 @@ export default function DataSources() {
   const [selectedPackage, setSelectedPackage] = useState<any | null>(null);
   const [openDetail, setOpenDetail] = useState(false);
 const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
-  // Edit dialog
-  const [openEdit, setOpenEdit] = useState(false);
-  const [editingPackage, setEditingPackage] = useState<any | null>(null);
-
-  // edit form fields
-  const [editPackageName, setEditPackageName] = useState("");
-  const [editDescription, setEditDescription] = useState("");
-  const [editVersion, setEditVersion] = useState("");
-  const [editSubCategoryName, setEditSubCategoryName] = useState("");
-  const [editMetaType, setEditMetaType] = useState("");
-  const [editMetaTitle, setEditMetaTitle] = useState("");
-  const [editMetaDescription, setEditMetaDescription] = useState("");
-  const [editMetaKeywords, setEditMetaKeywords] = useState("");
-  const [editFileFormat, setEditFileFormat] = useState("");
-  const [editFileSize, setEditFileSize] = useState("");
 
   // Delete dialog
   const [openDelete, setOpenDelete] = useState(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  // Upload (download file) dialog for attaching a file to a package
+  const [openUpload, setOpenUpload] = useState(false);
+  const [uploadFileForPackage, setUploadFileForPackage] = useState<File | null>(null);
+  const [uploadFileProgress, setUploadFileProgress] = useState(0);
+  const [uploadFileError, setUploadFileError] = useState<string | null>(null);
 
   // Fetch subcategories from external API
   const fetchSubCategories = async () => {
@@ -279,108 +269,83 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
   };
 
   // Open edit modal and populate fields
-  const handleOpenEdit = (pkg: any) => {
-    setEditingPackage(pkg);
-    setEditPackageName(pkg.packageName || "");
-    setEditDescription(pkg.description || "");
-    setEditVersion(pkg.version || "");
-    setEditSubCategoryName(pkg.subCategoryName || pkg.subcategoryName || "");
-    setEditMetaType(pkg.metaData?.type || "");
-    setEditMetaTitle(pkg.metaData?.title || "");
-    setEditMetaDescription(pkg.metaData?.description || "");
-    setEditMetaKeywords(pkg.metaData?.keywords || "");
-    setEditFileFormat(pkg.metaData?.fileFormat || "");
-    setEditFileSize(pkg.metaData?.fileSize ? String(pkg.metaData.fileSize) : "");
-    setOpenEdit(true);
+  // Open pricing dialog
+  const handleOpenPrice = (pkg: any) => {
+    setSelectedPackage(pkg);
+    setCurrentPackageId(pkg.packageId);
+    setPricePackage({
+      name: "",
+      price: "",
+      currency: "VND",
+      duration: "",
+      accessType: "",
+      discount: "0",
+    });
+    setOpenPrice(true);
   };
 
-  // Submit update
-  const handleUpdate = async (e: React.FormEvent) => {
+  // Open upload dialog (attach file via /api/Download/with-file)
+  const handleOpenUpload = (pkg: any) => {
+    setSelectedPackage(pkg);
+    setCurrentPackageId(pkg.packageId);
+    setUploadFileForPackage(null);
+    setUploadFileProgress(0);
+    setUploadFileError(null);
+    setOpenUpload(true);
+  };
+
+  const handleUploadFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0] ?? null;
+    setUploadFileForPackage(f);
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPackage) return;
+    if (!currentPackageId) {
+      alert("Không xác định được gói dữ liệu!");
+      return;
+    }
+    if (!uploadFileForPackage) {
+      alert("Vui lòng chọn tệp để tải lên");
+      return;
+    }
 
-    const payload = {
-      packageName: editPackageName,
-      description: editDescription,
-      version: editVersion,
-      subCategoryName: editSubCategoryName,
-      metaData: {
-        type: editMetaType,
-        title: editMetaTitle,
-        description: editMetaDescription,
-        keywords: editMetaKeywords,
-        fileFormat: editFileFormat,
-        fileSize: editFileSize ? Number(editFileSize) : 0,
-      },
-    };
-
+    setUploadFileProgress(10);
     try {
-      const res = await fetch(`/api/DataPackage/${editingPackage.packageId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+      const fd = new FormData();
+      fd.append("PackageId", String(currentPackageId));
+      fd.append("File", uploadFileForPackage, uploadFileForPackage.name);
+
+      const res = await fetch("/api/Download/with-file", {
+        method: "POST",
+        body: fd,
       });
 
       if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Cập nhật thất bại");
+        const txt = await res.text();
+        throw new Error(txt || "Upload thất bại");
       }
 
-      // refresh
+      const data = await res.json();
+      console.log("Upload download response:", data);
+      alert("Tạo download thành công");
+      setUploadFileProgress(100);
+      setOpenUpload(false);
+      setUploadFileForPackage(null);
+      // Refresh list if needed
       await fetchUserData();
-      setOpenEdit(false);
-      setEditingPackage(null);
-      alert("Cập nhật gói dữ liệu thành công");
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Cập nhật thất bại. Kiểm tra console để biết chi tiết.");
+      setUploadFileError(err?.message || String(err));
+      alert("Tải tệp thất bại. Kiểm tra console để biết chi tiết.");
+    } finally {
+      setUploadFileProgress(0);
     }
   };
 
-  // Prepare delete
-  const handleConfirmDelete = (id: number) => {
-    setDeleteId(id);
-    setOpenDelete(true);
-  };
-
-  // Execute delete
-  const handleDelete = async (idParam?: number | null) => {
-    const idToDelete = idParam ?? deleteId;
-    if (!idToDelete) return;
-    try {
-      const res = await fetch(`/api/DataPackage/${idToDelete}`, {
-        method: "DELETE",
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Xoá thất bại");
-      }
-
-      setDatasets((prev) => prev.filter((item) => item.packageId !== idToDelete));
-      setOpenDelete(false);
-      setDeleteId(null);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  // Filter datasets by search
-  const filteredDatasets = datasets.filter((item) => {
-    const term = search.trim().toLowerCase();
-    if (!term) return true;
-
-    const packName = (item.packageName ?? "").toLowerCase();
-    const subName =
-      (item.subCategoryName ??
-        item.subcategoryName ??
-        item.subcategory?.subcategoryName ??
-        item.subcategory?.subCategoryName ??
-        "").toLowerCase();
-
-    return packName.includes(term) || subName.includes(term);
-  });
-   const handleSavePrice = async () => {
+  // Save pricing
+  const handleSavePrice = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (!currentPackageId) {
       alert("Không xác định được gói dữ liệu!");
       return;
@@ -432,6 +397,56 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
       alert("Lưu giá thất bại! Vui lòng thử lại.");
     }
   };
+
+  // Prepare delete
+  const handleConfirmDelete = (id: number) => {
+    setDeleteId(id);
+    setOpenDelete(true);
+  };
+
+  // Execute delete
+  const handleDelete = async (idParam?: number | null) => {
+    const idToDelete = idParam ?? deleteId;
+    if (!idToDelete) return;
+    try {
+      console.debug("Deleting package", idToDelete);
+      const res = await fetch(`/api/DataPackage/${idToDelete}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        console.error("Delete failed:", text);
+        alert(`Xoá thất bại: ${text || res.statusText}`);
+        return;
+      }
+
+      // success
+      setDatasets((prev) => prev.filter((item) => item.packageId !== idToDelete));
+      setOpenDelete(false);
+      setDeleteId(null);
+      alert("Xoá gói dữ liệu thành công");
+    } catch (error) {
+      console.error("Error deleting package:", error);
+      alert("Xoá thất bại. Kiểm tra console để biết chi tiết.");
+    }
+  };
+
+  // Filter datasets by search
+  const filteredDatasets = datasets.filter((item) => {
+    const term = search.trim().toLowerCase();
+    if (!term) return true;
+
+    const packName = (item.packageName ?? "").toLowerCase();
+    const subName =
+      (item.subCategoryName ??
+        item.subcategoryName ??
+        item.subcategory?.subcategoryName ??
+        item.subcategory?.subCategoryName ??
+        "").toLowerCase();
+
+    return packName.includes(term) || subName.includes(term);
+  });
   
 
   return (
@@ -566,81 +581,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                 />
               </div>
 
-              {/* File upload */}
-              <div className="space-y-2">
-                <Label htmlFor="fileUpload">Tải lên tệp dữ liệu (Tùy chọn)</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    id="fileUpload"
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setSelectedFile(file);
-                      }
-                    }}
-                    accept=".csv,.json,.xlsx,.xls,.txt,.pdf,.zip"
-                    disabled={uploadProgress > 0}
-                  />
-                </div>
-                <p className="text-xs text-gray-500">
-                  Định dạng hỗ trợ: CSV, JSON, XLSX, TXT, PDF, ZIP (tối đa 100 MB)
-                </p>
-
-                {/* Show selected file */}
-                {selectedFile && (
-                  <div className="mt-2 p-3 rounded-md bg-blue-50 border border-blue-200 flex justify-between items-center">
-                    <div>
-                      <p className="text-sm font-medium text-blue-900">{selectedFile.name}</p>
-                      <p className="text-xs text-blue-700">
-                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setSelectedFile(null);
-                        if (fileInputRef.current) fileInputRef.current.value = "";
-                      }}
-                      disabled={uploadProgress > 0}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
-
-                {/* Upload progress */}
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="mt-2 space-y-1">
-                    <div className="flex justify-between text-xs">
-                      <span>Đang tải lên...</span>
-                      <span>{uploadProgress}%</span>
-                    </div>
-                    <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
-                      <div
-                        className="h-full bg-green-500 transition-all"
-                        style={{ width: `${uploadProgress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Upload success */}
-                {uploadProgress === 100 && uploadedFileUrl && (
-                  <div className="mt-2 p-3 rounded-md bg-green-50 border border-green-200">
-                    <p className="text-sm font-medium text-green-900">✓ File tải lên thành công</p>
-                  </div>
-                )}
-
-                {fileUploadError && (
-                  <div className="mt-2 p-3 rounded bg-red-50 text-red-700 border border-red-100">
-                    <strong>Lỗi upload:</strong> {fileUploadError}
-                  </div>
-                )}
-              </div>
+              
 
               <Button 
                 type="submit" 
@@ -653,69 +594,130 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
           </DialogContent>
         </Dialog>
 
-        {/* Edit dialog */}
-        <Dialog open={openEdit} onOpenChange={setOpenEdit}>
-          <DialogContent className="max-w-3xl">
+        {/* Pricing dialog */}
+        <Dialog open={openPrice} onOpenChange={setOpenPrice}>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Chỉnh sửa nguồn dữ liệu</DialogTitle>
-              <DialogDescription>Chỉnh sửa thông tin gói dữ liệu</DialogDescription>
+              <DialogTitle>Cập nhật giá - {selectedPackage?.packageName}</DialogTitle>
+              <DialogDescription>Thiết lập giá và điều khoản cho gói dữ liệu này</DialogDescription>
             </DialogHeader>
 
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <form onSubmit={handleSavePrice} className="space-y-4">
+              {/* Plan name + Price */}
               <div className="form-row">
-                <label htmlFor="editPackageName">Tên bộ dữ liệu</label>
-                <Input id="editPackageName" value={editPackageName} onChange={(e) => setEditPackageName(e.target.value)} required />
+                <label htmlFor="planName">Tên gói giá</label>
+                <Input
+                  id="planName"
+                  value={pricePackage.name}
+                  onChange={(e) => setPricePackage({ ...pricePackage, name: e.target.value })}
+                  placeholder="VD: Gói cơ bản, Gói Premium"
+                  required
+                />
 
-                <label htmlFor="editVersion">Phiên bản</label>
-                <Input id="editVersion" value={editVersion} onChange={(e) => setEditVersion(e.target.value)} />
+                <label htmlFor="price">Giá (VND)</label>
+                <Input
+                  id="price"
+                  type="number"
+                  value={pricePackage.price}
+                  onChange={(e) => setPricePackage({ ...pricePackage, price: e.target.value })}
+                  placeholder="0"
+                  required
+                />
               </div>
 
-              <div className="form-row" style={{ alignItems: 'start' }}>
-                <label htmlFor="editDescription">Mô tả</label>
-                <Textarea id="editDescription" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              {/* Duration + Access Type */}
+              <div className="form-row">
+                <label htmlFor="duration">Thời hạn (ngày)</label>
+                <Input
+                  id="duration"
+                  type="number"
+                  value={pricePackage.duration}
+                  onChange={(e) => setPricePackage({ ...pricePackage, duration: e.target.value })}
+                  placeholder="30"
+                  required
+                />
 
-                <label htmlFor="editSubCategory">Danh mục con</label>
-                <Select onValueChange={(val) => setEditSubCategoryName(val)}>
+                <label htmlFor="accessType">Loại truy cập</label>
+                <Input
+                  id="accessType"
+                  value={pricePackage.accessType}
+                  onChange={(e) => setPricePackage({ ...pricePackage, accessType: e.target.value })}
+                  placeholder="VD: Mua một lần, Đăng ký"
+                  required
+                />
+              </div>
+
+              {/* Discount + Currency */}
+              <div className="form-row">
+                <label htmlFor="discount">Chiết khấu (%)</label>
+                <Input
+                  id="discount"
+                  type="number"
+                  value={pricePackage.discount}
+                  onChange={(e) => setPricePackage({ ...pricePackage, discount: e.target.value })}
+                  placeholder="0"
+                />
+
+                <label htmlFor="currency">Tiền tệ</label>
+                <Select onValueChange={(val) => setPricePackage({ ...pricePackage, currency: val })}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn danh mục con" />
+                    <SelectValue defaultValue="VND" />
                   </SelectTrigger>
                   <SelectContent>
-                    {subCategories.map((item: any) => (
-                      <SelectItem key={item.subcategoryId ?? item.subCategoryId} value={item.subcategoryName}>
-                        {item.subcategoryName}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="VND">VND</SelectItem>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
-              <div className="form-row">
-                <label htmlFor="editMetaTitle">Tiêu đề Metadata</label>
-                <Input id="editMetaTitle" value={editMetaTitle} onChange={(e) => setEditMetaTitle(e.target.value)} />
+              <div className="flex justify-end gap-3 pt-4">
+                <Button variant="outline" onClick={() => setOpenPrice(false)}>Huỷ</Button>
+                <Button type="submit" className="bg-gradient-primary hover:opacity-90">Lưu giá</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+        {/* Upload (attach file) dialog */}
+        <Dialog open={openUpload} onOpenChange={setOpenUpload}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Đính kèm tệp cho: {selectedPackage?.packageName}</DialogTitle>
+              <DialogDescription>Gửi tệp kèm PackageId tới API /api/Download/with-file</DialogDescription>
+            </DialogHeader>
 
-                <label htmlFor="editMetaType">Loại Metadata</label>
-                <Input id="editMetaType" value={editMetaType} onChange={(e) => setEditMetaType(e.target.value)} />
+            <form onSubmit={handleUploadSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="uploadFile">Chọn tệp</Label>
+                <Input id="uploadFile" type="file" onChange={handleUploadFileChange} accept="*/*" />
+                <p className="text-xs text-gray-500">Gửi tệp sẽ tạo bản ghi Download và trả về fileUrl</p>
               </div>
 
-              <div className="form-row">
-                <label htmlFor="editMetaDescription">Mô tả Metadata</label>
-                <Textarea id="editMetaDescription" value={editMetaDescription} onChange={(e) => setEditMetaDescription(e.target.value)} />
+              {uploadFileForPackage && (
+                <div className="p-3 rounded-md bg-blue-50 border border-blue-200 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-900">{uploadFileForPackage.name}</p>
+                    <p className="text-xs text-blue-700">{(uploadFileForPackage.size / 1024 / 1024).toFixed(2)} MB</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setUploadFileForPackage(null)}>Huỷ</Button>
+                </div>
+              )}
 
-                <label htmlFor="editMetaKeywords">Từ khóa</label>
-                <Input id="editMetaKeywords" value={editMetaKeywords} onChange={(e) => setEditMetaKeywords(e.target.value)} />
-              </div>
+              {uploadFileProgress > 0 && uploadFileProgress < 100 && (
+                <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                  <div className="h-full bg-green-500" style={{ width: `${uploadFileProgress}%` }} />
+                </div>
+              )}
 
-              <div className="form-row">
-                <label htmlFor="editFileFormat">Định dạng tệp</label>
-                <Input id="editFileFormat" value={editFileFormat} onChange={(e) => setEditFileFormat(e.target.value)} />
-
-                <label htmlFor="editFileSize">Kích thước (MB)</label>
-                <Input id="editFileSize" type="number" value={editFileSize} onChange={(e) => setEditFileSize(e.target.value)} />
-              </div>
+              {uploadFileError && (
+                <div className="mt-2 p-3 rounded bg-red-50 text-red-700 border border-red-100">
+                  <strong>Lỗi:</strong> {uploadFileError}
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-4">
-                <Button variant="outline" onClick={() => setOpenEdit(false)}>Huỷ</Button>
-                <Button type="submit">Lưu</Button>
+                <Button variant="outline" onClick={() => setOpenUpload(false)}>Huỷ</Button>
+                <Button type="submit" className="bg-gradient-primary hover:opacity-90" disabled={!uploadFileForPackage}>Gửi tệp</Button>
               </div>
             </form>
           </DialogContent>
@@ -779,10 +781,10 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                 <TableHead>Tên dữ liệu</TableHead>
                 <TableHead>Loại</TableHead>
                 <TableHead>Dung lượng</TableHead>
-                <TableHead>D.mục con</TableHead>
+                <TableHead>Danh mục con</TableHead>
                 <TableHead>Trạng thái</TableHead>
                 <TableHead>Lượt tải</TableHead>
-                <TableHead>Doanh thu</TableHead>
+                <TableHead>Giá gói</TableHead>
                 <TableHead>Thao tác</TableHead>
               </TableRow>
             </TableHeader>
@@ -831,7 +833,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                     <TableCell>{dataset.downloadCount ?? 0}</TableCell>
 
                     <TableCell className="font-semibold text-success">
-                      {dataset.revenueCount ?? 0} VND
+                      {(dataset.price ?? 0).toLocaleString('vi-VN')} VND
                     </TableCell>
 
                     <TableCell>
@@ -844,8 +846,14 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                           <FileText className="h-4 w-4" />
                         </Button>
 
-                        <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(dataset)}>
-                          <Edit className="h-4 w-4" />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenPrice(dataset)}
+                          aria-label="Cập nhật giá"
+                          title="Cập nhật giá"
+                        >
+                          <DollarSign className="h-4 w-4 text-yellow-600" />
                         </Button>
 
                         <Button
@@ -1011,7 +1019,11 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
               <Button variant="outline" onClick={() => setOpenDelete(false)}>
                 Huỷ
               </Button>
-              <Button variant="destructive" onClick={() => handleDelete()}>
+              <Button
+                variant="destructive"
+                onClick={() => handleDelete(deleteId)}
+                disabled={!deleteId}
+              >
                 Xoá
               </Button>
             </div>
