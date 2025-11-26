@@ -665,8 +665,7 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="VND">VND</SelectItem>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
+            
                   </SelectContent>
                 </Select>
               </div>
@@ -854,6 +853,16 @@ const [currentPackageId, setCurrentPackageId] = useState<number | null>(null);
                           title="Cập nhật giá"
                         >
                           <DollarSign className="h-4 w-4 text-yellow-600" />
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleOpenUpload(dataset)}
+                          aria-label="Đính kèm tệp"
+                          title="Đính kèm tệp"
+                        >
+                          <Upload className="h-4 w-4 text-blue-600" />
                         </Button>
 
                         <Button
