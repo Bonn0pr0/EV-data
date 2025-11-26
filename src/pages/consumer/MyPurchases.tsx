@@ -17,6 +17,8 @@ import {
   FileText,
   Calendar,
   Package,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import {
   Table,
@@ -28,11 +30,37 @@ import {
 } from "@/components/ui/table";
 import { StatCard } from "@/components/Statcard";
 
+// Định nghĩa interface cho dữ liệu
+interface DownloadItem {
+  downloadId: number;
+  downloadDate: string;
+  fileName: string;
+  fileUrl: string;
+  status: string;
+  downloadCount: number;
+  packageId: number;
+}
+
+interface PurchaseItem {
+  transactionId: number;
+  packageId: number;
+  packageName: string;
+  providerName: string;
+  purchaseDate: string;
+  fileFormat: string;
+  fileSize: number;
+  totalDownloads: number;
+  latestDownloadDate: string | null;
+  status: string;
+  downloads: DownloadItem[];
+}
+
 export default function MyPurchases() {
   const [report, setReport] = useState<any>(null);
-  const [purchases, setPurchases] = useState<any[]>([]);
+  const [purchases, setPurchases] = useState<PurchaseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
 
   const userId = sessionStorage.getItem("userId");
 
@@ -46,12 +74,19 @@ export default function MyPurchases() {
     );
   };
 
-  
-  const handleDownload = async (p: any) => {
-    const id = p.downloadId ?? p.packageId;
+  const toggleRowExpansion = (transactionId: number) => {
+    setExpandedRows(prev =>
+      prev.includes(transactionId)
+        ? prev.filter(id => id !== transactionId)
+        : [...prev, transactionId]
+    );
+  };
+
+  const handleDownload = async (downloadItem: DownloadItem) => {
+    const id = downloadItem.downloadId;
 
     if (!id) {
-      alert("Không tìm thấy downloadId hoặc packageId để tải xuống");
+      alert("Không tìm thấy downloadId để tải xuống");
       return;
     }
 
@@ -62,7 +97,6 @@ export default function MyPurchases() {
       const headers: Record<string, string> = {};
       if (token) headers["Authorization"] = `Bearer ${token}`;
 
-      // 
       const url = `/api/download/${id}/download`;
 
       const res = await fetch(url, {
@@ -79,7 +113,7 @@ export default function MyPurchases() {
 
       // Lấy filename từ header
       const cd = res.headers.get("content-disposition");
-      let filename = "download_file";
+      let filename = downloadItem.fileName || "download_file";
 
       if (cd) {
         const utf8Match = cd.match(/filename\*=UTF-8''([^;]+)/);
@@ -107,7 +141,6 @@ export default function MyPurchases() {
       setDownloadingId(null);
     }
   };
-
 
   useEffect(() => {
     if (!userId) return;
@@ -140,10 +173,8 @@ export default function MyPurchases() {
     );
   }
 
- 
   return (
     <div className="space-y-6">
-
       {/* HEADER */}
       <div>
         <h2 className="text-3xl font-bold text-foreground mb-2">
@@ -157,22 +188,22 @@ export default function MyPurchases() {
       {/* STATS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="Total Packages"
-          value={report?.totalPackage || 0}
+          title="Tổng gói dữ liệu"
+          value={report?.totalPackage || purchases.length}
           icon={Package}
           change={`${report?.newPackageThisMonth || 0} new this month`}
           changeType="neutral"
         />
         <StatCard
-          title="Total Downloads"
-          value={report?.totalDownload || 0}
+          title="Tổng file"
+          value={report?.totalDownload || purchases.reduce((sum, p) => sum + p.totalDownloads, 0)}
           icon={Download}
           change={`${report?.totalRemaining || 0} remaining`}
           changeType="neutral"
         />
         <StatCard
-          title="Active Packages"
-          value={report?.activeCount || 0}
+          title="Trạng thái"
+          value={report?.activeCount || purchases.filter(p => p.status === "Purchased").length}
           icon={FileText}
           change={`${report?.expiredCount || 0} expired`}
           changeType="neutral"
@@ -182,7 +213,7 @@ export default function MyPurchases() {
       {/* PURCHASE TABLE */}
       <Card className="shadow-card border-border/50">
         <CardHeader>
-          <CardTitle>Purchased Data Packages</CardTitle>
+          <CardTitle>Gói dữ liệu đã mua</CardTitle>
           <CardDescription>
             Danh sách các gói dữ liệu bạn đã mua
           </CardDescription>
@@ -192,116 +223,204 @@ export default function MyPurchases() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Package ID</TableHead>
-                <TableHead>Package Name</TableHead>
-                <TableHead>Provider</TableHead>
-                <TableHead>Purchase Date</TableHead>
-                <TableHead>Format</TableHead>
-                <TableHead>File Size</TableHead>
-                <TableHead>Downloads</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead className="w-12"></TableHead>
+                <TableHead>Mã giao dịch</TableHead>
+                <TableHead>Tên gói dữ liệu</TableHead>
+                <TableHead>Nhà cung cấp</TableHead>
+                <TableHead>Ngày mua</TableHead>
+                <TableHead>Định dạng</TableHead>
+                <TableHead>Kích thước</TableHead>
+                <TableHead>Số file </TableHead>
+                <TableHead>ngày tải gần nhất</TableHead>
+                <TableHead>Trạng thái</TableHead>
+                <TableHead>Hoạt động</TableHead>
               </TableRow>
             </TableHeader>
 
             <TableBody>
               {purchases.length > 0 ? (
-                purchases.map((p, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">
-                      {p.packageId}
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="max-w-xs">
-                        <p className="font-medium text-foreground truncate">
-                          {p.packageName}
-                        </p>
-                      </div>
-                    </TableCell>
-
-                    <TableCell>{p.providerName}</TableCell>
-
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {new Date(p.purchaseDate).toLocaleDateString()}
-                      </div>
-                    </TableCell>
-
-                    <TableCell>{p.fileFormat}</TableCell>
-
-                    <TableCell>
-                      {(p.fileSize / 1024 / 1024).toFixed(2)} MB
-                    </TableCell>
-
-                    <TableCell>{p.downloadCount}</TableCell>
-
-                    <TableCell>
-                      <Badge
-                        variant={
-                          p.status === "success" ? "default" : "secondary"
-                        }
-                      >
-                        {p.status}
-                      </Badge>
-                    </TableCell>
-
-                    <TableCell>
-                      <div className="flex gap-2">
-
-                        {/* DOWNLOAD BUTTON */}
+                purchases.map((p) => (
+                  <>
+                    {/* Main Row */}
+                    <TableRow key={p.transactionId} className="group">
+                      <TableCell>
                         <Button
                           variant="ghost"
                           size="sm"
-                          disabled={
-                            p.status !== "success" ||
-                            downloadingId === (p.downloadId ?? p.packageId)
-                          }
-                          onClick={() => handleDownload(p)}
+                          onClick={() => toggleRowExpansion(p.transactionId)}
                         >
-                          <Download className="h-4 w-4" />
+                          {expandedRows.includes(p.transactionId) ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
                         </Button>
+                      </TableCell>
 
-                        {/* PREVIEW */}
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
+                      <TableCell className="font-medium">
+                        {p.transactionId}
+                      </TableCell>
 
-                  </TableRow>
+                      <TableCell>
+                        <div className="max-w-xs">
+                          <p className="font-medium text-foreground truncate">
+                            {p.packageName}
+                          </p>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>{p.providerName}</TableCell>
+
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-4 w-4 text-muted-foreground" />
+                          {new Date(p.purchaseDate).toLocaleDateString('vi-VN')}
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {p.fileFormat}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        {(p.fileSize / 1024 / 1024).toFixed(2)} MB
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="text-center">
+                          <span className="font-medium">{p.totalDownloads}</span>
+                        </div>
+                      </TableCell>
+
+                      <TableCell>
+                        {p.latestDownloadDate ? (
+                          <div className="text-sm">
+                            {new Date(p.latestDownloadDate).toLocaleDateString('vi-VN')}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Chưa tải</span>
+                        )}
+                      </TableCell>
+
+                      <TableCell>
+                        <Badge
+                          variant={
+                            p.status === "Purchased" ? "default" : "secondary"
+                          }
+                          className="capitalize"
+                        >
+                          {p.status.toLowerCase()}
+                        </Badge>
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {/* EXPAND BUTTON */}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleRowExpansion(p.transactionId)}
+                            title="Xem chi tiết downloads"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+
+                    {/* Expanded Row - Chi tiết downloads */}
+                    {expandedRows.includes(p.transactionId) && (
+                      <TableRow className="bg-muted/30">
+                        <TableCell colSpan={11} className="p-0">
+                          <div className="p-6">
+                            <div className="flex justify-between items-center mb-4">
+                              <h4 className="font-semibold text-lg">Chi tiết Files trong Package</h4>
+                              <Badge variant="secondary" className="text-sm">
+                                {p.downloads.length} files
+                              </Badge>
+                            </div>
+                            
+                            {p.downloads.length > 0 ? (
+                              <div className="space-y-3">
+                                {p.downloads.map((download, index) => (
+                                  <div
+                                    key={download.downloadId}
+                                    className="flex items-center justify-between p-4 border rounded-lg bg-background shadow-sm"
+                                  >
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-4">
+                                        <FileText className="h-5 w-5 text-blue-600" />
+                                        <div className="flex-1">
+                                          <p className="font-medium text-base mb-1">
+                                            {download.fileName}
+                                          </p>
+                                          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                            <span className="flex items-center gap-1">
+                                              <Calendar className="h-3 w-3" />
+                                              {new Date(download.downloadDate).toLocaleString('vi-VN')}
+                                            </span>
+                                            <span>
+                                              Download count: {download.downloadCount}
+                                            </span>
+                                            <Badge
+                                              variant={download.status === "Active" ? "default" : "secondary"}
+                                              className="text-xs"
+                                            >
+                                              {download.status}
+                                            </Badge>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                    
+                                    <Button
+                                      variant="default"
+                                      size="sm"
+                                      disabled={downloadingId === download.downloadId}
+                                      onClick={() => handleDownload(download)}
+                                      className="ml-4"
+                                    >
+                                      {downloadingId === download.downloadId ? (
+                                        <>
+                                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                          Đang tải...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Download className="h-4 w-4 mr-2" />
+                                          Tải xuống
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-8 text-muted-foreground border rounded-lg bg-background">
+                                <FileText className="h-12 w-12 mx-auto mb-3 text-gray-400" />
+                                <p>Không có file nào trong package này</p>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))
               ) : (
                 <TableRow>
                   <TableCell
-                    colSpan={9}
-                    className="text-center text-muted-foreground"
+                    colSpan={11}
+                    className="text-center text-muted-foreground py-8"
                   >
                     Không có gói dữ liệu nào
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
-
           </Table>
-        </CardContent>
-      </Card>
-
-      {/* INSTRUCTIONS */}
-      <Card className="shadow-card border-border/50">
-        <CardHeader>
-          <CardTitle>Download Instructions</CardTitle>
-          <CardDescription>Hướng dẫn tải và sử dụng dữ liệu</CardDescription>
-        </CardHeader>
-
-        <CardContent>
-          <div className="space-y-3 text-sm text-muted-foreground">
-            <p>1. Click vào nút Download để tải xuống gói dữ liệu</p>
-            <p>2. Mỗi gói có giới hạn số lần tải xuống theo gói đã mua</p>
-            <p>3. Dữ liệu raw cần được xử lý trước khi sử dụng</p>
-            <p>4. Sử dụng API Access để tích hợp trực tiếp vào hệ thống của bạn</p>
-          </div>
         </CardContent>
       </Card>
 
