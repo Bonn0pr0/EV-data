@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Star, Download, Eye, Calendar, FileText, BarChart3, Shield } from "lucide-react";
+import { Star, Download, Eye, Calendar, FileText, BarChart3, Shield, File, FolderOpen } from "lucide-react";
 
 interface Dataset {
   id: number;
@@ -49,6 +49,14 @@ const DatasetDetailModal = ({ isOpen, onClose, dataset }: DatasetDetailModalProp
       { field: "location_lat", type: "float", description: "GPS latitude coordinate" },
       { field: "location_lon", type: "float", description: "GPS longitude coordinate" },
       { field: "temperature", type: "float", description: "Battery temperature in Celsius" }
+    ],
+    files: [
+      { name: "tesla_model3_2024_q1.csv", size: "850 MB", format: "CSV", records: "2.5M" },
+      { name: "tesla_model3_2024_q2.csv", size: "920 MB", format: "CSV", records: "2.8M" },
+      { name: "charging_patterns.json", size: "340 MB", format: "JSON", records: "1.2M" },
+      { name: "temperature_data.parquet", size: "215 MB", format: "Parquet", records: "800K" },
+      { name: "location_data.parquet", size: "450 MB", format: "Parquet", records: "1.8M" },
+      { name: "documentation.pdf", size: "12 MB", format: "PDF", records: "-" }
     ]
   };
 
@@ -106,78 +114,12 @@ const DatasetDetailModal = ({ isOpen, onClose, dataset }: DatasetDetailModalProp
           </div>
         </div>
 
-        <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview">Tổng quan</TabsTrigger>
+        <Tabs defaultValue="files" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="files">Danh sách File</TabsTrigger>
             <TabsTrigger value="schema">Cấu trúc</TabsTrigger>
             <TabsTrigger value="sample">Mẫu dữ liệu</TabsTrigger>
-            <TabsTrigger value="api">API Access</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Thông tin Dataset
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Kích thước:</span>
-                    <span>{sampleData.overview.size}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Định dạng:</span>
-                    <span>{sampleData.overview.format}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Cập nhật:</span>
-                    <span>{sampleData.overview.updateFrequency}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Giấy phép:</span>
-                    <span>{sampleData.overview.license}</span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5" />
-                    Tính năng chính
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ul className="space-y-2">
-                    {sampleData.features.map((feature, index) => (
-                      <li key={index} className="flex items-center text-sm">
-                        <Shield className="h-4 w-4 text-electric-green mr-2" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Mô tả chi tiết</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground leading-relaxed">
-                  Dataset này cung cấp dữ liệu chi tiết về hiệu suất xe điện Tesla Model 3, 
-                  được thu thập từ hơn 10,000 xe trong suốt 2 năm vận hành. Dữ liệu bao gồm 
-                  thông tin về pin, hiệu suất sạc, mô hình sử dụng và các chỉ số kỹ thuật quan trọng. 
-                  Đây là tài nguyên quý giá cho các nhà nghiên cứu, kỹ sư và nhà phát triển 
-                  muốn hiểu sâu về hoạt động của xe điện trong điều kiện thực tế.
-                </p>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
           <TabsContent value="schema" className="space-y-4">
             <Card>
@@ -232,37 +174,53 @@ const DatasetDetailModal = ({ isOpen, onClose, dataset }: DatasetDetailModalProp
             </Card>
           </TabsContent>
 
-          <TabsContent value="api" className="space-y-4">
+          <TabsContent value="files" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>API Access</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <FolderOpen className="h-5 w-5" />
+                  Danh sách File Download
+                </CardTitle>
                 <CardDescription>
-                  Truy cập dữ liệu qua RESTful API
+                  Các file trong dataset sẵn sàng để tải xuống
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Endpoint URL:</h4>
-                  <code className="bg-muted px-2 py-1 rounded text-sm">
-                    https://api.ev-analytics.com/v1/datasets/{dataset.id}
-                  </code>
+              <CardContent>
+                <div className="space-y-3">
+                  {sampleData.files.map((file, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3 flex-1">
+                        <File className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm truncate">{file.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {file.size} • {file.format} • {file.records} bản ghi
+                          </div>
+                        </div>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        className="flex-shrink-0 ml-2"
+                      >
+                        <Download className="h-4 w-4 mr-2" />
+                        Tải
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-                
-                <div>
-                  <h4 className="font-medium mb-2">Rate Limits:</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• 1000 requests/hour cho gói Basic</li>
-                    <li>• 10000 requests/hour cho gói Pro</li>
-                    <li>• Unlimited cho gói Enterprise</li>
-                  </ul>
-                </div>
+              </CardContent>
+            </Card>
 
-                <div>
-                  <h4 className="font-medium mb-2">Authentication:</h4>
-                  <code className="bg-muted px-2 py-1 rounded text-sm block">
-                    Authorization: Bearer YOUR_API_KEY
-                  </code>
-                </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Hướng dẫn Tải xuống</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>• Chọn file bạn muốn tải xuống bằng cách nhấp vào nút "Tải"</p>
+                <p>• Tất cả file đều được nén để giảm thời gian tải xuống</p>
+                <p>• Bạn sẽ nhận được email với link tải xuống trực tiếp</p>
+                <p>• Link tải xuống có hiệu lực trong 7 ngày kể từ khi mua</p>
               </CardContent>
             </Card>
           </TabsContent>
