@@ -28,7 +28,7 @@ const Market = () => {
 
   const [datasets, setDatasets] = useState([]);
 
-  // ✅ Fetch API khi load trang
+  //  Fetch API khi load trang
   useEffect(() => {
     fetch("/api/DataPackage/AllPackage", {
       method: "GET",

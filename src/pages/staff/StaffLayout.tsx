@@ -1,7 +1,8 @@
- import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import React from "react";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { StaffSidebar } from "@/components/StaffSidebar";
 import { Outlet, useNavigate, Link } from "react-router-dom";
-import { Bell, User, LogOut, Search, Settings } from "lucide-react";
+import { Bell, User, LogOut, Search, Settings, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -18,6 +19,27 @@ import { Input } from "@/components/ui/input";
 export default function StaffLayout() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const [theme, setTheme] = React.useState<"light" | "dark">(() => {
+    try {
+      const stored = localStorage.getItem("theme");
+      return (stored === "dark" ? "dark" : "light");
+    } catch {
+      return "light";
+    }
+  });
+
+  React.useEffect(() => {
+    try {
+      const root = document.documentElement;
+      if (theme === "dark") root.classList.add("dark");
+      else root.classList.remove("dark");
+      localStorage.setItem("theme", theme);
+    } catch (e) {
+      console.warn("Could not apply theme", e);
+    }
+  }, [theme]);
+
+  const toggleTheme = () => setTheme((t) => (t === "dark" ? "light" : "dark"));
 
   const handleLogout = () => {
     signOut();
@@ -49,6 +71,20 @@ export default function StaffLayout() {
                 <div className="flex items-center gap-2">
                   <Button variant="ghost" size="icon">
                     <Bell className="h-5 w-5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleTheme}
+                    aria-label={theme === "dark" ? "Chuyển sang sáng" : "Chuyển sang tối"}
+                    title={theme === "dark" ? "Chuyển sang sáng" : "Chuyển sang tối"}
+                  >
+                    {theme === "dark" ? (
+                      <Sun className="h-5 w-5" />
+                    ) : (
+                      <Moon className="h-5 w-5" />
+                    )}
                   </Button>
                   
                   <DropdownMenu>

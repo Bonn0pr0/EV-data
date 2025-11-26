@@ -1,199 +1,393 @@
-"use client";
-
-import { useState, useEffect } from "react";
+// src/pages/consumer/PaymentPage.tsx
+import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
-import QRCode from "react-qr-code";
+import { useAuth } from "../../contexts/AuthContext";
 
-// CRC16-CCITT (xmodem) pure JS
-function crc16ccitt(str: string) {
-  let crc = 0xffff;
-  for (let i = 0; i < str.length; i++) {
-    crc ^= str.charCodeAt(i) << 8;
-    for (let j = 0; j < 8; j++) {
-      if ((crc & 0x8000) !== 0) crc = (crc << 1) ^ 0x1021;
-      else crc <<= 1;
-      crc &= 0xffff;
-    }
-  }
-  return crc.toString(16).toUpperCase().padStart(4, "0");
-}
+/**
+ * PaymentPage - React + TypeScript
+ *
+ * Backend endpoints:
+ * POST /api/Transaction/create-payment
+ * POST /api/Transaction/waiting-confirm
+ * GET /api/Orders/{orderId}
+ */
 
-// Build TPBank QR tĩnh
-const buildTPBankQR = (amount: number) => {
-  const accountName = "Bùi Hoàng Phúc";
-  const accountNumber = "06296707401";
-  const bankCode = "TPBANK";
-
-  const payloadWithoutCRC = [
-    "000201",
-    "010212",
-    `52${bankCode.length}${bankCode}`,
-    `53${3}704`,
-    `54${amount.toString().length}${amount}`,
-    `59${accountName.length}${accountName}`,
-    `58${2}VN`,
-  ].join("");
-
-  const crcValue = crc16ccitt(payloadWithoutCRC);
-  return payloadWithoutCRC + "6304" + crcValue;
+type CartItem = {
+  cartId: number;
+  packageName: string;
+  quantity: number;
+  totalAmout: number;
 };
 
-export default function PaymentTPBank() {
-  const [showQR, setShowQR] = useState(false);
-  const [countdown, setCountdown] = useState(300);
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [totalAmount, setTotalAmount] = useState(0);
+export default function PaymentPage(): JSX.Element {
+  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [cartIds, setCartIds] = useState<number[]>([]);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  const userId = sessionStorage.getItem("userId");
+  const [method, setMethod] = useState<"vnpay" | "bank">("vnpay");
+  const [processing, setProcessing] = useState<boolean>(false);
+  const [serverError, setServerError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  // Lấy giỏ hàng từ API
+  const [currentOrderId, setCurrentOrderId] = useState<number | null>(null);
+  const [orderStatus, setOrderStatus] = useState<string | null>(null);
+
+  const pollRef = useRef<number | null>(null);
+
+  const { user: authUser } = useAuth();
+  const userIdRaw =
+    typeof window !== "undefined" ? sessionStorage.getItem("userId") : null;
+  const userId = userIdRaw ? Number(userIdRaw) : null;
+
+  const token =
+    authUser?.token ||
+    (typeof window !== "undefined" ? sessionStorage.getItem("token") : null);
+
+  // Bank Info
+  const BANK_INFO = {
+    bankName: "TPBank",
+    accountNumber: "06296707401",
+    accountName: "Bùi Hoàng Phúc",
+    noteExample: "Thanh toán đơn hàng #ORDER123",
+  };
+
+  // VietQR auto URL
+  const qrUrl = `https://img.vietqr.io/image/TPB-${BANK_INFO.accountNumber}-compact.png?amount=${totalAmount}&addInfo=Thanh%20toan%20don%20hang%20${userId}`;
+
+  // Load cart data
   useEffect(() => {
-    if (!userId) return;
+    if (!userId) {
+      setLoading(false);
+      setMessage("Bạn chưa đăng nhập");
+      return;
+    }
 
+    setLoading(true);
     axios
       .get(`/api/Cart?userId=${userId}`)
       .then((res) => {
-        const data = res.data || [];
+        const data: any[] = res.data || [];
         setCartItems(data);
-
-        const total = data.reduce(
-          (sum: number, item: any) => sum + item.totalAmout,
-          0
-        );
-        const ids = data.map((item: any) => item.cartId);
-
-        setTotalAmount(total);
-        setCartIds(ids);
+        setCartIds(data.map((x) => x.cartId));
+        setTotalAmount(data.reduce((s, x) => s + (x.totalAmout || 0), 0));
       })
       .catch((err) => {
-        console.error("Lỗi tải giỏ hàng:", err);
-        alert("Không thể tải giỏ hàng");
-      });
+        console.error("Load cart failed:", err);
+        setServerError("Không thể tải giỏ hàng. Vui lòng thử lại.");
+      })
+      .finally(() => setLoading(false));
   }, [userId]);
 
-  // Countdown QR
+  // Poll order status (5s)
   useEffect(() => {
-    if (showQR && countdown > 0) {
-      const timer = setInterval(() => setCountdown((prev) => prev - 1), 1000);
-      return () => clearInterval(timer);
-    }
-  }, [showQR, countdown]);
+    if (!currentOrderId) return;
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
+    const poll = async () => {
+      try {
+        const res = await axios.get(`/api/Orders/${currentOrderId}`);
+        const status = res.data?.status;
+        setOrderStatus(status);
+        if (status === "PAID" || status === "FAILED") {
+          if (pollRef.current) {
+            window.clearInterval(pollRef.current);
+            pollRef.current = null;
+          }
+        }
+      } catch (err) {
+        console.error("Poll order failed:", err);
+      }
+    };
 
-  const tpbankQRData = buildTPBankQR(totalAmount);
+    poll();
+    pollRef.current = window.setInterval(poll, 5000);
 
-  // Tạo giao dịch demo
-  const handleConfirmPayment = async () => {
+    return () => {
+      if (pollRef.current) window.clearInterval(pollRef.current);
+      pollRef.current = null;
+    };
+  }, [currentOrderId]);
+
+  // VNPay
+  const handlePayVNPay = async () => {
     if (!userId || cartIds.length === 0) {
-      alert("Không có giỏ hàng hoặc người dùng");
+      alert("Bạn cần đăng nhập và có sản phẩm trong giỏ hàng.");
       return;
     }
-    setIsProcessing(true);
+
+    setProcessing(true);
+    setServerError(null);
 
     const payload = {
-      userId: Number(userId),
-      cartIds: cartIds,
+      userId,
+      cartIds,
       amount: totalAmount,
-      paymentMethod: "tpbank-qr",
-      orderInfo: `Thanh toán đơn hàng ngày ${new Date().toLocaleString(
-        "vi-VN"
-      )}`,
+      paymentMethod: "vnpay",
+      orderInfo: `Thanh toán đơn hàng - user ${userId} - ${new Date().toLocaleString()}`,
     };
 
     try {
-      await axios.post("/api/Transaction/create", payload);
-      alert("Thanh toán thành công!");
-    } catch (err) {
-      console.error(err);
-      alert("Thanh toán thất bại!");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await axios.post(
+        "/api/Transaction/create-payment",
+        payload,
+        { headers }
+      );
+
+      const paymentUrl = res.data?.paymentUrl;
+      const orderId = res.data?.orderId || null;
+
+      if (orderId) setCurrentOrderId(orderId);
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        alert("Server không trả về URL thanh toán.");
+      }
+    } catch (err: any) {
+      alert("Lỗi tạo giao dịch: " + err?.response?.data?.message);
     } finally {
-      setIsProcessing(false);
+      setProcessing(false);
     }
   };
 
+  // Manual Bank Transfer
+  const handleUserMarkTransferred = async () => {
+    if (!userId || cartIds.length === 0) {
+      alert("Bạn cần đăng nhập và có sản phẩm trong giỏ hàng.");
+      return;
+    }
+
+    setProcessing(true);
+    setServerError(null);
+
+    const payload = {
+      userId,
+      cartIds,
+      amount: totalAmount,
+      paymentMethod: "bank-transfer",
+      orderInfo: `Chuyển khoản thủ công - user ${userId} - ${new Date().toLocaleString()}`,
+    };
+
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await axios.post(
+        "/api/Transaction/create-payment",
+        payload,
+        { headers }
+      );
+
+      const orderId = res.data?.orderId;
+
+      if (orderId) {
+        await axios.post("/api/Transaction/waiting-confirm", {
+          orderId,
+          userId,
+        });
+        setCurrentOrderId(orderId);
+        setOrderStatus("WAITING_CHECK");
+        alert("Đã ghi nhận. Chờ admin xác nhận.");
+      }
+    } catch (err: any) {
+      alert("Lỗi ghi nhận: " + err?.response?.data?.message);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const fmt = (v: number) => v.toLocaleString("vi-VN");
+
   return (
-    <div className="min-h-screen bg-green-50 p-6 flex flex-col items-center space-y-6">
-      <h1 className="text-3xl font-bold text-gray-900">Thanh toán QR</h1>
-      <p className="text-gray-700">Quét mã QR để chuyển tiền</p>
-
-      <div className="flex flex-col lg:flex-row gap-6 w-full max-w-4xl">
-        {/* Left: QR */}
-        <div className="flex-1">
-          <div className="bg-white p-6 rounded-lg shadow-lg space-y-4">
-            {showQR ? (
-              <div className="flex flex-col items-center space-y-4">
-                <p className="text-gray-600 text-sm">
-                  Mã QR hết hạn sau:{" "}
-                  <span className="font-bold text-gray-900">
-                    {formatTime(countdown)}
-                  </span>
-                </p>
-                <QRCode value={tpbankQRData} size={256} level="H" />
-                <p className="text-green-600 font-bold text-lg">
-                  Số tiền: {totalAmount.toLocaleString()} VNĐ
-                </p>
-                <button
-                  disabled={isProcessing}
-                  onClick={handleConfirmPayment}
-                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                >
-                  {isProcessing ? (
-                    <span className="animate-spin h-4 w-4 border-2 border-white rounded-full" />
-                  ) : (
-                    "Xác nhận thanh toán"
-                  )}
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowQR(true)}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-md w-full"
-              >
-                Tạo mã QR 
-              </button>
-            )}
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-6">
+            <h1 className="text-2xl font-semibold">Thanh toán đơn hàng</h1>
           </div>
-        </div>
 
-        {/* Right: Giỏ hàng */}
-        <div className="w-full lg:w-80">
-          <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-            <div className="bg-green-600 text-white p-4 font-bold text-lg">
-              Đơn hàng của bạn
-            </div>
-            <div className="p-4 space-y-3">
-              {cartItems.length > 0 ? (
-                cartItems.map((item, idx) => (
-                  <div key={idx} className="flex justify-between text-sm">
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {item.packageName}
-                      </p>
-                      <p className="text-gray-500">x{item.quantity}</p>
+          <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left */}
+            <div className="lg:col-span-2 bg-white">
+              <div className="border rounded-md overflow-hidden">
+                <div className="bg-gray-100 px-4 py-3 font-medium">
+                  Đơn hàng của bạn
+                </div>
+                <div className="p-4 space-y-4">
+                  {loading && <div>Đang tải giỏ hàng...</div>}
+                  {!loading && cartItems.length === 0 && (
+                    <div className="text-gray-500">Giỏ hàng trống</div>
+                  )}
+
+                  {cartItems.map((it) => (
+                    <div
+                      key={it.cartId}
+                      className="flex justify-between items-start"
+                    >
+                      <div>
+                        <div className="font-medium">{it.packageName}</div>
+                        <div className="text-sm text-gray-500">
+                          x{it.quantity}
+                        </div>
+                      </div>
+                      <div className="font-semibold">
+                        {fmt(it.totalAmout)} VNĐ
+                      </div>
                     </div>
-                    <span className="font-medium text-gray-900">
-                      {item.totalAmout.toLocaleString()} VNĐ
+                  ))}
+
+                  <div className="border-t pt-3 flex justify-between items-center">
+                    <div className="font-bold">Tổng cộng</div>
+                    <div className="text-2xl text-green-600 font-bold">
+                      {fmt(totalAmount)} VNĐ
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {currentOrderId && (
+                <div className="mt-4 p-4 bg-yellow-50 border rounded-md">
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      Order ID: <strong>{currentOrderId}</strong>
+                    </span>
+                    <span>
+                      Trạng thái: <strong>{orderStatus}</strong>
                     </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-500 text-sm">Không có sản phẩm</p>
+                </div>
               )}
-              <hr className="my-2" />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Tổng cộng</span>
-                <span className="text-green-600">
-                  {totalAmount.toLocaleString()} VNĐ
-                </span>
-              </div>
+
+              {serverError && (
+                <div className="mt-4 p-3 rounded bg-red-50 text-red-700">
+                  <strong>Lỗi:</strong> {serverError}
+                </div>
+              )}
             </div>
+
+            {/* Right: Payment Method */}
+            <div className="bg-white p-4 rounded-md border">
+              <div className="mb-4">
+                <div className="font-medium text-lg">
+                  Phương thức thanh toán
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {/* Radio VNPay */}
+                <label
+                  className={`flex items-center p-3 rounded-md cursor-pointer ${
+                    method === "vnpay"
+                      ? "border border-green-400 bg-green-50"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="method"
+                    checked={method === "vnpay"}
+                    onChange={() => setMethod("vnpay")}
+                    className="mr-3"
+                  />
+                  <span className="font-semibold">
+                    VNPay (Thanh toán trực tuyến)
+                  </span>
+                </label>
+
+                {/* Radio Bank */}
+                <label
+                  className={`flex items-center p-3 rounded-md cursor-pointer ${
+                    method === "bank"
+                      ? "border border-green-400 bg-green-50"
+                      : "hover:bg-gray-50"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="method"
+                    checked={method === "bank"}
+                    onChange={() => setMethod("bank")}
+                    className="mr-3"
+                  />
+                  <span className="font-semibold">
+                    Chuyển khoản ngân hàng (Thủ công)
+                  </span>
+                </label>
+              </div>
+
+              {/* VNPay Button */}
+              {method === "vnpay" && (
+                <div className="mt-6">
+                  <button
+                    onClick={handlePayVNPay}
+                    disabled={processing}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-md font-semibold"
+                  >
+                    {processing ? "Đang xử lý..." : "Thanh toán VNPay"}
+                  </button>
+                </div>
+              )}
+
+              {/* BANK TRANSFER + QR */}
+              {method === "bank" && (
+                <div className="mt-6 space-y-4">
+                  {/* Bank info */}
+                  <div className="p-3 rounded-md bg-gray-50 border">
+                    <div>
+                      <strong>Ngân hàng:</strong> {BANK_INFO.bankName}
+                    </div>
+                    <div>
+                      <strong>Số tài khoản:</strong>{" "}
+                      {BANK_INFO.accountNumber}
+                    </div>
+                    <div>
+                      <strong>Chủ tài khoản:</strong>{" "}
+                      {BANK_INFO.accountName}
+                    </div>
+                    <div>
+                      <strong>Số tiền:</strong> {fmt(totalAmount)} VNĐ
+                    </div>
+                  </div>
+
+                  {/* VietQR */}
+                  <div className="p-4 bg-white border rounded-md text-center">
+                    <div className="font-semibold mb-2">
+                      Quét mã VietQR để thanh toán
+                    </div>
+
+                    <img
+                      src={qrUrl}
+                      alt="VietQR TPBank"
+                      className="w-60 mx-auto rounded-md shadow"
+                    />
+
+                    <div className="text-xs text-gray-500 mt-2">
+                      Mã QR tự động theo số tiền và nội dung.
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleUserMarkTransferred}
+                    disabled={processing}
+                    className="w-full bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-md font-semibold"
+                  >
+                    {processing
+                      ? "Đang ghi nhận..."
+                      : "Tôi đã chuyển khoản"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="text-sm text-gray-500 p-4">
+            Lưu ý: Chuyển khoản thủ công cần admin xác nhận thủ công.
           </div>
         </div>
       </div>
