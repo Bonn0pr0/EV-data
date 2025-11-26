@@ -1,10 +1,8 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Star, Download, Eye, Calendar } from "lucide-react";
-import DatasetDetailModal from "@/components/DatasetDetailModal";
 import { toast } from "sonner";
 
 const datasets = [
@@ -50,18 +48,11 @@ const datasets = [
 ];
 
 const FeaturedDatasets = () => {
-  const [selectedDataset, setSelectedDataset] = useState<typeof datasets[0] | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const navigate = useNavigate();
 
-  const handleViewDetails = (dataset: typeof datasets[0]) => {
-    setSelectedDataset(dataset);
-    setIsDetailModalOpen(true);
-  };
-
-  const handleViewAllDatasets = () => {
-    navigate('/market');
-    toast.success("Xem tất cả datasets có sẵn!");
+  const handleBuyNow = (datasetId: number) => {
+    navigate(`/checkout/${datasetId}`);
+    toast.success("Điều hướng đến trang thanh toán!");
   };
 
   return (
@@ -141,9 +132,9 @@ const FeaturedDatasets = () => {
                   <Button 
                     size="sm" 
                     className="bg-gradient-primary hover:opacity-90"
-                    onClick={() => handleViewDetails(dataset)}
+                    onClick={() => handleBuyNow(dataset.id)}
                   >
-                    Xem Chi Tiết
+                    Mua Ngay
                   </Button>
                 </div>
               </CardContent>
@@ -156,18 +147,15 @@ const FeaturedDatasets = () => {
             variant="outline" 
             size="lg" 
             className="text-lg px-8 py-6"
-            onClick={handleViewAllDatasets}
+            onClick={() => {
+              navigate('/market');
+              toast.success("Xem tất cả datasets có sẵn!");
+            }}
           >
             Xem Tất Cả Datasets
           </Button>
         </div>
       </div>
-      
-      <DatasetDetailModal
-        isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
-        dataset={selectedDataset}
-      />
     </section>
   );
 };

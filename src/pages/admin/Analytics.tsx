@@ -68,7 +68,7 @@ export default function Analytics() {
         />
       </div>
 
-      {/* ✅ Top 10 DataPackages phổ biến */}
+
       <Card className="shadow-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
