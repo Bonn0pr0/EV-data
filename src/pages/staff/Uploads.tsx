@@ -106,7 +106,7 @@ export default function Uploads() {
 
       const blob = await res.blob();
       const cd = res.headers.get("content-disposition") || "";
-      let filename = rec.fileName || rec.fileNameOriginal || rec.fileName || rec.filename || rec.name || `file`;
+      let filename = rec.fileName || rec.fileNameOriginal || rec.filename || rec.name || `file`;
       if (cd) {
         const rfcMatch = cd.match(/filename\*=(?:UTF-8''|utf-8''|UTF8'')?([^;\n\r]+)/i);
         if (rfcMatch && rfcMatch[1]) {

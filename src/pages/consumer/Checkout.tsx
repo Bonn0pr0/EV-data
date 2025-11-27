@@ -63,9 +63,7 @@ export default function Checkout() {
       setIsProcessing(false);
 
       // 👉 Điều hướng tùy phương thức thanh toán
-      if (paymentMethod === "momo") {
-        navigate("/consumer/payment-momo", { state: { total, items: cartItems } });
-      } else if (paymentMethod === "vnpay") {
+       if (paymentMethod === "vnpay") {
         navigate("/consumer/payment-vnpay", { state: { total, items: cartItems } });
       } else {
         toast.success("Thanh toán thành công!");
@@ -120,16 +118,7 @@ export default function Checkout() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-                  <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent cursor-pointer">
-                    <RadioGroupItem value="momo" id="momo" />
-                    <Label htmlFor="momo" className="flex items-center gap-3 flex-1 cursor-pointer">
-                      <Wallet className="h-5 w-5 text-pink-600" />
-                      <div>
-                        <p className="font-medium">MoMo</p>
-                        <p className="text-sm text-muted-foreground">Ví điện tử MoMo</p>
-                      </div>
-                    </Label>
-                  </div>
+                  
 
                   <div className="flex items-center space-x-3 rounded-lg border border-border p-4 hover:bg-accent cursor-pointer">
                     <RadioGroupItem value="vnpay" id="vnpay" />

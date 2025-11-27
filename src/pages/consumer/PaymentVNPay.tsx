@@ -205,24 +205,24 @@ export default function PaymentPage(): JSX.Element {
   const fmt = (v: number) => v.toLocaleString("vi-VN");
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white shadow-md rounded-lg overflow-hidden">
+    <div className="min-h-screen bg-background py-10 px-4">
+      <div className="max-w-4xl">
+        <div className="bg-card shadow-md rounded-lg overflow-hidden">
           <div className="bg-gradient-to-r from-green-500 to-teal-500 text-white px-6 py-6">
             <h1 className="text-2xl font-semibold">Thanh toán đơn hàng</h1>
           </div>
 
           <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left */}
-            <div className="lg:col-span-2 bg-white">
+            <div className="lg:col-span-2 bg-card">
               <div className="border rounded-md overflow-hidden">
-                <div className="bg-gray-100 px-4 py-3 font-medium">
+                <div className="bg-background/50 px-4 py-3 font-medium">
                   Đơn hàng của bạn
                 </div>
                 <div className="p-4 space-y-4">
                   {loading && <div>Đang tải giỏ hàng...</div>}
                   {!loading && cartItems.length === 0 && (
-                    <div className="text-gray-500">Giỏ hàng trống</div>
+                    <div className="text-muted-foreground">Giỏ hàng trống</div>
                   )}
 
                   {cartItems.map((it) => (
@@ -252,31 +252,30 @@ export default function PaymentPage(): JSX.Element {
               </div>
 
               {currentOrderId && (
-                <div className="mt-4 p-4 bg-yellow-50 border rounded-md">
-                  <div className="flex justify-between text-sm">
+                <div className="mt-4 p-4 bg-background/10 border border-border rounded-md">
+                  <div className="flex justify-between text-sm text-muted-foreground">
                     <span>
-                      Order ID: <strong>{currentOrderId}</strong>
+                      Order ID: <strong className="text-foreground">{currentOrderId}</strong>
                     </span>
                     <span>
-                      Trạng thái: <strong>{orderStatus}</strong>
+                      Trạng thái: <strong className="text-foreground">{orderStatus}</strong>
                     </span>
                   </div>
                 </div>
               )}
 
               {serverError && (
-                <div className="mt-4 p-3 rounded bg-red-50 text-red-700">
-                  <strong>Lỗi:</strong> {serverError}
+                <div className="mt-4 p-3 rounded-md bg-card/5 border border-border text-destructive">
+                  <strong className="mr-2">Lỗi:</strong>
+                  <span className="text-destructive">{serverError}</span>
                 </div>
               )}
             </div>
 
             {/* Right: Payment Method */}
-            <div className="bg-white p-4 rounded-md border">
+            <div className="bg-card p-4 rounded-md border border-border">
               <div className="mb-4">
-                <div className="font-medium text-lg">
-                  Phương thức thanh toán
-                </div>
+                <div className="font-medium text-lg">Phương thức thanh toán</div>
               </div>
 
               <div className="space-y-3">
@@ -284,8 +283,8 @@ export default function PaymentPage(): JSX.Element {
                 <label
                   className={`flex items-center p-3 rounded-md cursor-pointer ${
                     method === "vnpay"
-                      ? "border border-green-400 bg-green-50"
-                      : "hover:bg-gray-50"
+                      ? "border border-green-400 bg-background/20"
+                      : "hover:bg-background/10"
                   }`}
                 >
                   <input
@@ -304,8 +303,8 @@ export default function PaymentPage(): JSX.Element {
                 <label
                   className={`flex items-center p-3 rounded-md cursor-pointer ${
                     method === "bank"
-                      ? "border border-green-400 bg-green-50"
-                      : "hover:bg-gray-50"
+                      ? "border border-green-400 bg-background/20"
+                      : "hover:bg-background/10"
                   }`}
                 >
                   <input
@@ -338,7 +337,7 @@ export default function PaymentPage(): JSX.Element {
               {method === "bank" && (
                 <div className="mt-6 space-y-4">
                   {/* Bank info */}
-                  <div className="p-3 rounded-md bg-gray-50 border">
+                  <div className="p-3 rounded-md bg-background/50 border border-border">
                     <div>
                       <strong>Ngân hàng:</strong> {BANK_INFO.bankName}
                     </div>
@@ -356,7 +355,7 @@ export default function PaymentPage(): JSX.Element {
                   </div>
 
                   {/* VietQR */}
-                  <div className="p-4 bg-white border rounded-md text-center">
+                  <div className="p-4 bg-card border border-border rounded-md text-center">
                     <div className="font-semibold mb-2">
                       Quét mã VietQR để thanh toán
                     </div>
@@ -367,7 +366,7 @@ export default function PaymentPage(): JSX.Element {
                       className="w-60 mx-auto rounded-md shadow"
                     />
 
-                    <div className="text-xs text-gray-500 mt-2">
+                    <div className="text-xs text-muted-foreground mt-2">
                       Mã QR tự động theo số tiền và nội dung.
                     </div>
                   </div>
@@ -386,7 +385,7 @@ export default function PaymentPage(): JSX.Element {
             </div>
           </div>
 
-          <div className="text-sm text-gray-500 p-4">
+          <div className="text-sm text-muted-foreground p-4">
             Lưu ý: Chuyển khoản thủ công cần admin xác nhận thủ công.
           </div>
         </div>
